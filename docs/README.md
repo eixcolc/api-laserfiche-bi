@@ -9,6 +9,7 @@
 | [plantilla-laserfiche.md](plantilla-laserfiche.md) | Equipo Laserfiche | Campos de la plantilla, mapeo desde el XML y quién escribe cada campo |
 | [workflow-laserfiche.md](workflow-laserfiche.md) | Equipo Laserfiche | Workflow de registro (llamada al stored procedure) y workflow de tarea al ejecutivo |
 | [modelo-datos.md](modelo-datos.md) | Desarrollo y DBA | Tablas, stored procedures y roles de la base BILF |
+| [prueba-local.md](prueba-local.md) | Desarrollo y QA | Emular la carga por SFTP sin Laserfiche y probar los endpoints |
 
 La colección [APILFBI.Api.http](../src/APILFBI.Api/APILFBI.Api.http) tiene un ejemplo listo de cada método.
 

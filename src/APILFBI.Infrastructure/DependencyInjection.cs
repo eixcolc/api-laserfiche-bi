@@ -1,6 +1,9 @@
 using System.Security.Cryptography.X509Certificates;
 using APILFBI.Application.Abstracciones;
+using APILFBI.Application.Cargas;
 using APILFBI.Application.Documentos;
+using APILFBI.Infrastructure.Cargas;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using APILFBI.Application.Estados;
 using APILFBI.Application.Expedientes;
 using APILFBI.Infrastructure.Trabajos;
@@ -74,7 +77,14 @@ public static class DependencyInjection
         services.AddSingleton<IColaSincronizacionLaserfiche>(sp => sp.GetRequiredService<ColaSincronizacionLaserfiche>());
         services.AddHostedService<ProcesadorColaSincronizacion>();
 
+        // Carga de documentos por la API (deja el par en la carpeta de Import Agent)
+        services.AddOptions<CargaApiOptions>().Bind(config.GetSection(CargaApiOptions.Seccion)).ValidateDataAnnotations();
+        services.AddScoped<IRepositorioCargas, RepositorioCargas>();
+        services.AddSingleton<IAlmacenCargas, AlmacenCargasCarpeta>();
+        services.TryAddSingleton<IEscanerAntivirus, EscanerAntivirusDeshabilitado>();
+
         // Trabajos programados (los usa el Worker)
+        services.AddSingleton<EjecutorCargasPendientes>();
         services.AddSingleton<BloqueoDistribuido>();
         services.AddSingleton<EjecutorVencimiento>();
         services.AddSingleton<EjecutorLimpiezaIdempotencia>();

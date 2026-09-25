@@ -96,6 +96,24 @@ public sealed class EjecutorVencimiento(IDbContextFactory<BilfDbContext> dbFacto
     }
 }
 
+/// <summary>
+/// Cargas recibidas por la API que siguen en estado Recibido después del tiempo de alerta: Import Agent
+/// o el workflow no las procesaron (servicio caído, carpeta mal configurada, etc.).
+/// </summary>
+public sealed class EjecutorCargasPendientes(IDbContextFactory<BilfDbContext> dbFactory)
+{
+    public async Task<IReadOnlyList<string>> ObtenerAsync(int minutos, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.Database.SqlQuery<string>($"""
+            SELECT TOP (100) c.Correlativo AS Value
+            FROM trx.CargaDocumento c JOIN cat.EstadoCarga e ON e.IdEstadoCarga = c.IdEstadoCarga
+            WHERE e.Codigo = 'Recibido' AND c.FechaHoraRecepcion < DATEADD(MINUTE, -{minutos}, SYSUTCDATETIME())
+            ORDER BY c.FechaHoraRecepcion
+            """).ToListAsync(ct);
+    }
+}
+
 /// <summary>Borra las llaves de idempotencia vencidas (aud.IdempotenciaRequest).</summary>
 public sealed class EjecutorLimpiezaIdempotencia(IDbContextFactory<BilfDbContext> dbFactory, ILogger<EjecutorLimpiezaIdempotencia> log)
 {

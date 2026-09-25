@@ -1,5 +1,6 @@
 using System.Text;
 using APILFBI.Application.Abstracciones;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,11 +11,15 @@ namespace APILFBI.Infrastructure.Laserfiche;
 /// configurada o, si no existe, un PDF generado. Los streams son navegables, así que el header
 /// Range lo resuelve ASP.NET.
 /// </summary>
-internal sealed class LaserficheSimulado(IOptions<LaserficheOptions> opciones, ILogger<LaserficheSimulado> log) : ILaserficheRepositoryService
+internal sealed class LaserficheSimulado(IOptions<LaserficheOptions> opciones, IHostEnvironment entorno, ILogger<LaserficheSimulado> log) : ILaserficheRepositoryService
 {
     public Task<ContenidoDocumento> DescargarAsync(int entryId, string? rango, CancellationToken ct = default)
     {
+        // Una ruta relativa se toma desde la carpeta del proyecto (content root).
         var carpeta = opciones.Value.Simulacion.CarpetaArchivos;
+        if (!string.IsNullOrWhiteSpace(carpeta))
+            carpeta = Path.GetFullPath(Path.Combine(entorno.ContentRootPath, carpeta));
+
         if (!string.IsNullOrWhiteSpace(carpeta) && Directory.Exists(carpeta))
         {
             var archivo = Directory.EnumerateFiles(carpeta, $"{entryId}.*").FirstOrDefault();

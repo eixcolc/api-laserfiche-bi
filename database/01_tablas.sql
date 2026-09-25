@@ -124,6 +124,7 @@ CREATE TABLE cat.MotivoRechazoCarga (
     IdMotivoRechazoCarga int IDENTITY(1,1) NOT NULL,
     Codigo              varchar(50)    NOT NULL,
     Nombre              nvarchar(150)  NOT NULL,
+    CodigoRespuesta     int            NULL,       -- código de cat.CodigoRespuesta que se devuelve con este motivo (FK más abajo)
     Descripcion         nvarchar(500)  NULL,
     Orden               int            NOT NULL DEFAULT (0),
     Activo              bit            NOT NULL DEFAULT (1),
@@ -288,6 +289,9 @@ CREATE TABLE cat.CodigoRespuesta (
     CONSTRAINT UQ_CodigoRespuesta_Clave UNIQUE (Clave),
     CONSTRAINT CK_CodigoRespuesta_HttpStatus CHECK (HttpStatus BETWEEN 100 AND 599)
 );
+
+ALTER TABLE cat.MotivoRechazoCarga
+    ADD CONSTRAINT FK_MotivoRechazoCarga_CodigoRespuesta FOREIGN KEY (CodigoRespuesta) REFERENCES cat.CodigoRespuesta (Codigo);
 
 CREATE TABLE cat.EstadoSincronizacion (
     IdEstadoSincronizacion int IDENTITY(1,1) NOT NULL,

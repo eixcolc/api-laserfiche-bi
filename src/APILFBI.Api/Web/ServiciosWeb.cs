@@ -102,6 +102,9 @@ public static class ServiciosWeb
 
         services.AddOpenApi(o => o.AddDocumentTransformer<TransformadorSeguridadOpenApi>());
 
+        // La API exige la carpeta de Import Agent para el endpoint de carga.
+        services.AddOptions<Infrastructure.Cargas.CargaApiOptions>().ValidateOnStart();
+
         return services;
     }
 

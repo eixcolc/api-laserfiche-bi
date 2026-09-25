@@ -5,6 +5,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- El mismo XSD que se entrega al CRM: el XML que arma la API se valida contra él. -->
+    <EmbeddedResource Include="..\..\docs\xsd\expediente-v1.xsd" LogicalName="APILFBI.expediente-v1.xsd" />
+  </ItemGroup>
+
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <InternalsVisibleTo Include="APILFBI.Tests" />
   </ItemGroup>

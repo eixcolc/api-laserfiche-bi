@@ -40,6 +40,7 @@ esa tabla; si se agrega o cambia un código, la API lo toma sin desplegar.
 | 2 | 201 | Creado | Recurso creado con éxito |
 | 3 | 200 | ExitoParcial | Transacción realizada parcialmente; revise el detalle por ítem |
 | 4 | 206 | ContenidoParcial | Contenido parcial del documento |
+| 5 | 202 | CargaRecibida | Carga recibida; se está importando a Laserfiche |
 | 100 | 400 | SolicitudInvalida | La solicitud no tiene un formato válido |
 | 101 | 400 | CampoObligatorio | Falta un campo obligatorio |
 | 102 | 400 | FormatoCampoInvalido | Un campo tiene un formato o tipo de dato inválido |
@@ -67,12 +68,15 @@ esa tabla; si se agrega o cambia un código, la API lo toma sin desplegar.
 | 409 | 422 | TipoClienteNoAplica | El tipo de expediente no está configurado para el tipo de cliente |
 | 410 | 422 | TamanoExcedido | El archivo supera el tamaño máximo permitido |
 | 411 | 422 | HashNoCoincide | El hash SHA-256 no coincide con el archivo recibido |
+| 412 | 422 | DocumentoReemplazaNoVigente | El documento a reemplazar ya fue reemplazado por una versión más reciente |
+| 413 | 422 | ArchivoRechazadoAntivirus | El archivo fue rechazado por el antivirus |
 | 500 | 409 | ConflictoLlaves | Las llaves enviadas corresponden a expedientes distintos |
 | 501 | 409 | LlaveIdentificadoraDistinta | Una llave identificadora no coincide con la registrada |
 | 502 | 409 | IdempotencyKeyReutilizada | La llave de idempotencia ya se usó con otro contenido |
 | 503 | 409 | ConflictoConcurrencia | El registro fue modificado por otra operación; intente de nuevo |
 | 504 | 409 | DocumentoDuplicado | El documento ya fue registrado |
 | 505 | 409 | SolicitudEnProceso | Una solicitud con la misma llave de idempotencia está en proceso |
+| 506 | 409 | CorrelativoExistente | El correlativo ya fue usado en otra carga |
 | 800 | 429 | LimiteSolicitudes | Se superó el límite de solicitudes; intente más tarde |
 | 900 | 500 | ErrorInterno | Ocurrió un error interno; comuníquese con soporte |
 | 901 | 502 | ErrorLaserfiche | Laserfiche respondió con un error |
@@ -102,7 +106,8 @@ Todos los métodos protegidos pueden devolver además **201, 202, 800, 900 y 903
 | 7 | `POST /clientes/natural/documentos/consulta` | 1 · 100 · 101 · 102 · 103 · 104 · 105 · 302 · 409 · 500 |
 | 8 | `POST /clientes/juridico/documentos/consulta` | 1 · 100 · 101 · 102 · 103 · 104 · 105 · 302 · 409 · 500 |
 | 7-8 | `GET /expedientes/{id}/documentos` | 1 · 300 |
-| 11-13 | `GET /cargas/{correlativo}` | 1 · 304 |
+| 11-12 | `POST /expedientes/{id}/documentos` (carga por la API) | 5 (recibida) · 101 · 102 · 300 · 301 · 405 · 406 · 407 · 410 · 411 · 412 · 413 · 502 · 505 · 506 |
+| 11-13 | `GET /cargas/{correlativo}` | 1 · 304 (`estadoCarga`: Recibido, Importado o Rechazado) |
 | 9 | `GET /documentos/{idDocumento}/contenido` | HTTP 200 o 206 con el archivo · 301 · 901 · 902 · 904 |
 | 10 | `POST /documentos/estado` | 1 · 3 · 100 · 101 · 102 · 300 · 405 · 502 · 505 · y el código del primer documento con error (ver abajo) |
 
@@ -160,4 +165,5 @@ Valores iniciales de `cat.TransicionEstadoDocumento` (se mantienen desde el mód
 | 407 | FormatoNoPermitido |
 | 410 | TamanoExcedido |
 | 411 | HashNoCoincide |
+| 412 | DocumentoReemplazaNoVigente |
 | 504 | Duplicado |

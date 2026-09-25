@@ -62,10 +62,12 @@ public sealed class DocumentosService(
         var estados = await catalogos.ObtenerAsync<EstadoCarga>(ct);
         var motivos = await catalogos.ObtenerAsync<MotivoRechazoCarga>(ct);
 
+        var estado = estados.First(e => e.Id == carga.IdEstadoCarga).Codigo;
         return new CargaDto(
             carga.Correlativo,
-            estados.First(e => e.Id == carga.IdEstadoCarga).Codigo,
-            carga.LaserficheEntryId,
+            estado,
+            // Solo una carga importada tiene documento en BILF; la rechazada no se puede consultar ni descargar.
+            estado == "Importado" ? carga.LaserficheEntryId : null,
             carga.IdExpediente,
             carga.IdTipoDocumento,
             carga.IdMotivoRechazoCarga is { } m ? motivos.FirstOrDefault(x => x.Id == m)?.Codigo : null,

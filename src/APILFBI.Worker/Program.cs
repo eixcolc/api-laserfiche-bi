@@ -25,6 +25,7 @@ builder.Services.AddOptions<WorkerOptions>().Bind(builder.Configuration.GetSecti
 builder.Services.AddHostedService<JobSincronizacionLaserfiche>();
 builder.Services.AddHostedService<JobVencimiento>();
 builder.Services.AddHostedService<JobLimpiezaIdempotencia>();
+builder.Services.AddHostedService<JobCargasPendientes>();
 
 // Como servicio de Windows si se instala así; en consola o contenedor funciona igual.
 builder.Services.AddWindowsService(o => o.ServiceName = "APILFBI.Worker");

@@ -62,6 +62,31 @@ Idempotency-Key: ejemplo-0001-expediente
 GET {{base}}/api/v1/expedientes/{{expediente.response.body.$.data.expediente.idExpediente}}
 Authorization: {{auth}}
 
+### 8b. Cargar un documento por la API (archivo + metadata en un solo multipart). Responde 202
+POST {{base}}/api/v1/expedientes/{{expediente.response.body.$.data.expediente.idExpediente}}/documentos
+Authorization: {{auth}}
+X-Operation-User: 51451
+Content-Type: multipart/form-data; boundary=LIMITE
+
+--LIMITE
+Content-Disposition: form-data; name="archivo"; filename="estados-financieros.pdf"
+Content-Type: application/pdf
+
+< ../../herramientas/muestras/estados-financieros.pdf
+--LIMITE
+Content-Disposition: form-data; name="idTipoDocumento"
+
+32
+--LIMITE
+Content-Disposition: form-data; name="fechaEmision"
+
+2026-09-01
+--LIMITE
+Content-Disposition: form-data; name="nombreUsuarioCarga"
+
+Reina Pasita Caceres Palacios
+--LIMITE--
+
 ### 9. Consulta transaccional, cliente jurídico (criterio 8): cif o rtn
 POST {{base}}/api/v1/clientes/juridico/documentos/consulta
 Authorization: {{auth}}

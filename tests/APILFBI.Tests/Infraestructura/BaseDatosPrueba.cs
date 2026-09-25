@@ -72,15 +72,21 @@ public static partial class BaseDatosPrueba
         return valor is null or DBNull ? default : (T)valor;
     }
 
+    /// <summary>Busca database/ subiendo desde el binario y, si no está (ej. --artifacts-path), desde este archivo fuente.</summary>
     private static string BuscarCarpetaDatabase()
     {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        foreach (var inicio in new[] { AppContext.BaseDirectory, Path.GetDirectoryName(RutaFuente())! })
         {
-            var candidata = Path.Combine(dir.FullName, "database");
-            if (File.Exists(Path.Combine(candidata, "01_tablas.sql"))) return candidata;
+            for (var dir = new DirectoryInfo(inicio); dir is not null; dir = dir.Parent)
+            {
+                var candidata = Path.Combine(dir.FullName, "database");
+                if (File.Exists(Path.Combine(candidata, "01_tablas.sql"))) return candidata;
+            }
         }
         throw new DirectoryNotFoundException("No se encontró la carpeta database/ con los scripts.");
     }
+
+    private static string RutaFuente([System.Runtime.CompilerServices.CallerFilePath] string ruta = "") => ruta;
 }
 
 /// <summary>Prueba que necesita SQL Server; se omite si el servidor no está disponible.</summary>

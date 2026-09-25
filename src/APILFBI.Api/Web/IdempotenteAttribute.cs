@@ -84,6 +84,9 @@ internal sealed partial class FiltroIdempotencia(IAlmacenIdempotencia almacen, I
         }
     }
 
+    /// <summary>Los archivos se representan por nombre, tamaño y hash de su contenido.</summary>
+    private static readonly JsonSerializerOptions OpcionesHash = new(JsonSerializerOptions.Web) { Converters = { new ConvertidorArchivo() } };
+
     /// <summary>Hash de los argumentos ya enlazados: la misma solicitud produce el mismo hash.</summary>
     private static string Hash(ActionExecutingContext ctx)
     {
@@ -91,7 +94,23 @@ internal sealed partial class FiltroIdempotencia(IAlmacenIdempotencia almacen, I
             .Where(a => a.Value is not CancellationToken)
             .OrderBy(a => a.Key, StringComparer.Ordinal)
             .ToDictionary(a => a.Key, a => a.Value);
-        var json = JsonSerializer.Serialize(argumentos, JsonSerializerOptions.Web);
+        var json = JsonSerializer.Serialize(argumentos, OpcionesHash);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
+    }
+
+    private sealed class ConvertidorArchivo : System.Text.Json.Serialization.JsonConverter<IFormFile>
+    {
+        public override IFormFile Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            throw new NotSupportedException();
+
+        public override void Write(Utf8JsonWriter writer, IFormFile value, JsonSerializerOptions options)
+        {
+            using var contenido = value.OpenReadStream();
+            writer.WriteStartObject();
+            writer.WriteString("nombre", value.FileName);
+            writer.WriteNumber("bytes", value.Length);
+            writer.WriteString("sha256", Convert.ToHexString(SHA256.HashData(contenido)));
+            writer.WriteEndObject();
+        }
     }
 }

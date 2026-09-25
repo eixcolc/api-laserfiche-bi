@@ -34,16 +34,30 @@ public static class Escenarios
     /// <summary>Registra un documento con trx.usp_RegistrarDocumento y devuelve su LaserficheEntryId.</summary>
     public static async Task<int> RegistrarDocumentoAsync(ApiFactory api, long idExpediente, int tipoDocumento = 32)
     {
+        var (entryId, codigo, _) = await IntentarRegistrarAsync(api, idExpediente, tipoDocumento);
+        if (codigo != 1) throw new InvalidOperationException($"No se registró el documento de prueba: código {codigo}");
+        return entryId;
+    }
+
+    /// <summary>Como lo haría el workflow; devuelve el código y el motivo de rechazo (si hubo).</summary>
+    public static async Task<(int EntryId, int? Codigo, string? Motivo)> IntentarRegistrarAsync(
+        ApiFactory api, long idExpediente, int tipoDocumento = 32, int? reemplaza = null)
+    {
         var entryId = EntryId();
         var codigo = await BaseDatosPrueba.EscalarAsync<int?>(api.BaseDatos, $"""
             DECLARE @c int, @m nvarchar(300), @d bigint;
             EXEC trx.usp_RegistrarDocumento @LaserficheEntryId = {entryId}, @IdExpediente = {idExpediente},
                  @Correlativo = N'ESC-{entryId}', @IdTipoDocumento = {tipoDocumento}, @NombreDocumento = N'ESC-{entryId}.pdf',
                  @FechaEmision = '2026-09-01', @UsuarioCarga = '51451', @NombreUsuarioCarga = N'Usuario Prueba',
+                 @LaserficheEntryIdReemplaza = {(reemplaza is null ? "NULL" : reemplaza.ToString())},
                  @CodigoRespuesta = @c OUTPUT, @Mensaje = @m OUTPUT, @IdDocumento = @d OUTPUT;
             """);
-        if (codigo != 1) throw new InvalidOperationException($"No se registró el documento de prueba: código {codigo}");
-        return entryId;
+        var motivo = await BaseDatosPrueba.EscalarAsync<string>(api.BaseDatos, $"""
+            SELECT m.Codigo FROM trx.CargaDocumento c
+            LEFT JOIN cat.MotivoRechazoCarga m ON m.IdMotivoRechazoCarga = c.IdMotivoRechazoCarga
+            WHERE c.Correlativo = N'ESC-{entryId}'
+            """);
+        return (entryId, codigo, motivo);
     }
 
     public static async Task<T?> EsperarAsync<T>(Func<Task<T?>> leer, Func<T?, bool> condicion, int intentos = 50)

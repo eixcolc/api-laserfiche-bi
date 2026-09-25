@@ -19,6 +19,9 @@ public sealed class ConfiguracionLaserficheTests
         }.Concat(valores).ToDictionary()).Build();
 
         var services = new ServiceCollection().AddLogging();
+        // En la aplicación real lo registra el host.
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostEnvironment>(
+            new Microsoft.Extensions.Hosting.Internal.HostingEnvironment { ContentRootPath = AppContext.BaseDirectory });
         services.AddInfraestructura(config);
         return services.BuildServiceProvider();
     }

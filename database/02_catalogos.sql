@@ -87,7 +87,8 @@ INSERT INTO cat.EstadoCarga (IdEstadoCarga, Codigo, Nombre, Descripcion, Orden)
 SELECT v.Id, v.Codigo, v.Nombre, v.Descripcion, v.Orden
 FROM (VALUES
     (1, 'Importado', N'Importado', N'El documento se importó a Laserfiche y quedó registrado.',       1),
-    (2, 'Rechazado', N'Rechazado', N'El documento no pasó las validaciones y no quedó registrado.', 2)
+    (2, 'Rechazado', N'Rechazado', N'El documento no pasó las validaciones y no quedó registrado.', 2),
+    (3, 'Recibido',  N'Recibido',  N'La API recibió el documento y lo dejó para Import Agent; falta que el workflow lo registre.', 0)
 ) v (Id, Codigo, Nombre, Descripcion, Orden)
 WHERE NOT EXISTS (SELECT 1 FROM cat.EstadoCarga t WHERE t.Codigo = v.Codigo);
 SET IDENTITY_INSERT cat.EstadoCarga OFF;
@@ -107,7 +108,8 @@ FROM (VALUES
     (8,  'TamanoExcedido',                N'El archivo supera el tamaño máximo permitido',                8),
     (9,  'HashNoCoincide',                N'El hash SHA-256 no coincide con el archivo recibido',         9),
     (10, 'Duplicado',                     N'El correlativo o el documento ya fue registrado',             10),
-    (11, 'DocumentoReemplazaNoExiste',    N'El documento a reemplazar no existe',                         11)
+    (11, 'DocumentoReemplazaNoExiste',    N'El documento a reemplazar no existe',                         11),
+    (12, 'DocumentoReemplazaNoVigente',   N'El documento a reemplazar ya fue reemplazado por una versión más reciente', 12)
 ) v (Id, Codigo, Nombre, Orden)
 WHERE NOT EXISTS (SELECT 1 FROM cat.MotivoRechazoCarga t WHERE t.Codigo = v.Codigo);
 SET IDENTITY_INSERT cat.MotivoRechazoCarga OFF;
@@ -224,7 +226,8 @@ FROM (VALUES
     (15, 'ConsultaCatalogo',      N'Consulta de catálogo',                   15),
     (16, 'ConsultaBitacora',      N'Consulta de bitácora',                   16),
     (17, 'SincronizacionLaserfiche', N'Actualización de campos en Laserfiche', 17),
-    (18, 'LimpiezaIdempotencia',  N'Limpieza de llaves de idempotencia',     18)
+    (18, 'LimpiezaIdempotencia',  N'Limpieza de llaves de idempotencia',     18),
+    (19, 'RecepcionCarga',        N'Recepción de documento por la API',      19)
 ) v (Id, Codigo, Nombre, Orden)
 WHERE NOT EXISTS (SELECT 1 FROM cat.TipoOperacion t WHERE t.Codigo = v.Codigo);
 SET IDENTITY_INSERT cat.TipoOperacion OFF;
@@ -272,6 +275,7 @@ FROM (VALUES
     (2,  2,   'Creado',                       N'Recurso creado con éxito',                                          201),
     (3,  3,   'ExitoParcial',                 N'Transacción realizada parcialmente; revise el detalle por ítem',    200),
     (4,  4,   'ContenidoParcial',             N'Contenido parcial del documento',                                   206),
+    (45, 5,   'CargaRecibida',                N'Carga recibida; se está importando a Laserfiche',                   202),
     -- Validación (400)
     (5,  100, 'SolicitudInvalida',            N'La solicitud no tiene un formato válido',                           400),
     (6,  101, 'CampoObligatorio',             N'Falta un campo obligatorio',                                        400),
@@ -303,6 +307,9 @@ FROM (VALUES
     (41, 409, 'TipoClienteNoAplica',          N'El tipo de expediente no está configurado para el tipo de cliente', 422),
     (42, 410, 'TamanoExcedido',               N'El archivo supera el tamaño máximo permitido',                      422),
     (43, 411, 'HashNoCoincide',               N'El hash SHA-256 no coincide con el archivo recibido',               422),
+    (44, 412, 'DocumentoReemplazaNoVigente',  N'El documento a reemplazar ya fue reemplazado por una versión más reciente', 422),
+    (46, 413, 'ArchivoRechazadoAntivirus',    N'El archivo fue rechazado por el antivirus',                         422),
+    (47, 506, 'CorrelativoExistente',         N'El correlativo ya fue usado en otra carga',                         409),
     -- Conflicto (409)
     (29, 500, 'ConflictoLlaves',              N'Las llaves enviadas corresponden a expedientes distintos',          409),
     (30, 501, 'LlaveIdentificadoraDistinta',  N'Una llave identificadora no coincide con la registrada',            409),
@@ -321,6 +328,18 @@ FROM (VALUES
 ) v (Id, Codigo, Clave, Mensaje, HttpStatus)
 WHERE NOT EXISTS (SELECT 1 FROM cat.CodigoRespuesta t WHERE t.Codigo = v.Codigo);
 SET IDENTITY_INSERT cat.CodigoRespuesta OFF;
+
+-- Código de respuesta que se devuelve con cada motivo de rechazo de carga.
+-- Solo completa los que aún no tienen código (respeta cambios hechos desde el módulo de catálogos).
+UPDATE m SET CodigoRespuesta = v.CodigoRespuesta
+FROM cat.MotivoRechazoCarga m
+JOIN (VALUES
+    ('XmlInvalido', 100), ('ExpedienteNoExiste', 300), ('ExpedienteCerrado', 405),
+    ('TipoDocumentoNoExiste', 303), ('TipoNoPerteneceTipoExpediente', 406), ('TipoNoAplicaTipoCliente', 406),
+    ('FormatoNoPermitido', 407), ('TamanoExcedido', 410), ('HashNoCoincide', 411), ('Duplicado', 504),
+    ('DocumentoReemplazaNoExiste', 301), ('DocumentoReemplazaNoVigente', 412)
+) v (Codigo, CodigoRespuesta) ON v.Codigo = m.Codigo
+WHERE m.CodigoRespuesta IS NULL;
 
 /* =====================================================================================
    NÚCLEO

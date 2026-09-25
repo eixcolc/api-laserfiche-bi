@@ -62,6 +62,25 @@ public sealed class ApiTests(ApiFactory api)
     }
 
     [FactSqlServer]
+    public async Task Swagger_y_el_contrato_openapi_se_ven_sin_token()
+    {
+        var cliente = api.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var pagina = await cliente.GetAsync("/swagger/index.html");
+        Assert.Equal(HttpStatusCode.OK, pagina.StatusCode);
+        Assert.Contains("swagger-ui", await pagina.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/openapi/v1.json")).StatusCode);
+
+        var raiz = await cliente.GetAsync("/");
+        Assert.Equal(HttpStatusCode.Redirect, raiz.StatusCode);
+        Assert.Equal("/swagger", raiz.Headers.Location?.ToString());
+
+        // El resto de la API sigue exigiendo token.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await cliente.GetAsync("/api/v1/tipos-expediente")).StatusCode);
+    }
+
+    [FactSqlServer]
     public async Task Health_live_y_ready_responden_200()
     {
         var cliente = api.CreateClient();

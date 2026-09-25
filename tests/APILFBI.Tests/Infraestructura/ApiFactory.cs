@@ -17,6 +17,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public string BaseDatos { get; } = $"BILF_TEST_{Guid.NewGuid():N}"[..20];
     public string SecretoCrm { get; private set; } = string.Empty;
+
+    /// <summary>Carpeta de Import Agent de las pruebas (se borra al final).</summary>
+    public string CarpetaImportAgent { get; } = Path.Combine(Path.GetTempPath(), "APILFBI-pruebas", Guid.NewGuid().ToString("N"));
     public string SecretoSoloDocumentos { get; private set; } = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -28,6 +31,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Bitacora:IntervaloVaciadoMs", "100");
         builder.UseSetting("RateLimit:TokenPorMinuto", "1000");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        builder.UseSetting("OpenApi:Habilitado", "true");
+        builder.UseSetting("CargaApi:CarpetaImportAgent", CarpetaImportAgent);
     }
 
     public async Task InitializeAsync()
@@ -46,6 +51,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         await base.DisposeAsync();
         if (BaseDatosPrueba.Disponible) await BaseDatosPrueba.EliminarAsync(BaseDatos);
+        if (Directory.Exists(CarpetaImportAgent)) Directory.Delete(CarpetaImportAgent, recursive: true);
     }
 
     public static FormUrlEncodedContent FormularioToken(string clientId, string secreto, string? scope = null, string grantType = "client_credentials")

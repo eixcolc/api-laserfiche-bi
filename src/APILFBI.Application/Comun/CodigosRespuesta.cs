@@ -11,6 +11,7 @@ public static class CodigosRespuesta
     public const int Creado = 2;
     public const int ExitoParcial = 3;
     public const int ContenidoParcial = 4;
+    public const int CargaRecibida = 5;
 
     public const int SolicitudInvalida = 100;
     public const int CampoObligatorio = 101;
@@ -42,6 +43,8 @@ public static class CodigosRespuesta
     public const int TipoClienteNoAplica = 409;
     public const int TamanoExcedido = 410;
     public const int HashNoCoincide = 411;
+    public const int DocumentoReemplazaNoVigente = 412;
+    public const int ArchivoRechazadoAntivirus = 413;
 
     public const int ConflictoLlaves = 500;
     public const int LlaveIdentificadoraDistinta = 501;
@@ -49,6 +52,7 @@ public static class CodigosRespuesta
     public const int ConflictoConcurrencia = 503;
     public const int DocumentoDuplicado = 504;
     public const int SolicitudEnProceso = 505;
+    public const int CorrelativoExistente = 506;
 
     public const int LimiteSolicitudes = 800;
 

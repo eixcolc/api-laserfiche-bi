@@ -125,6 +125,160 @@
         }
       }
     },
+    "/api/v1/expedientes/{idExpediente}/documentos": {
+      "post": {
+        "tags": [
+          "Cargas"
+        ],
+        "summary": "Carga de un documento por la API (alternativa al SFTP, criterios 11 y 12). El archivo y su metadata\r\nvan en un solo multipart/form-data. La API valida de inmediato (formato y contenido real, tamaño,\r\nque el tipo aplique al expediente, reemplazo), arma el XML del contrato y deja el par en la carpeta\r\nde Import Agent. Responde 202 (código 5): el resultado final se consulta en GET /cargas/{correlativo}.\r\nRequiere X-Operation-User (es el usuarioCarga); acepta Idempotency-Key.",
+        "parameters": [
+          {
+            "name": "idExpediente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Opcional: SHA-256 del archivo; si viene y no coincide se rechaza (código 411).",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "archivo": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  },
+                  "idTipoDocumento": {
+                    "pattern": "^-?(?:0|[1-9]\\d*)$",
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "format": "int32"
+                  },
+                  "fechaEmision": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "fechaVencimiento": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "comentario": {
+                    "type": "string"
+                  },
+                  "idDocumentoReemplaza": {
+                    "pattern": "^-?(?:0|[1-9]\\d*)$",
+                    "type": [
+                      "integer",
+                      "string"
+                    ],
+                    "format": "int32"
+                  },
+                  "nombreUsuarioCarga": {
+                    "type": "string"
+                  },
+                  "correlativo": {
+                    "type": "string"
+                  },
+                  "hashSha256": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfRespuestaCarga"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfRespuestaCarga"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfRespuestaCarga"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Documentos"
+        ],
+        "summary": "Documentos del expediente, igual que las consultas 7 y 8 pero directo por idExpediente.",
+        "parameters": [
+          {
+            "name": "idExpediente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tipos-documento": {
       "get": {
         "tags": [
@@ -288,48 +442,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RespuestaApiOfConsultaJuridicaRespuesta"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/expedientes/{idExpediente}/documentos": {
-      "get": {
-        "tags": [
-          "Documentos"
-        ],
-        "summary": "Documentos del expediente, igual que las consultas 7 y 8 pero directo por idExpediente.",
-        "parameters": [
-          {
-            "name": "idExpediente",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
                 }
               }
             }
@@ -1437,6 +1549,10 @@
           }
         }
       },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
       "ItemCatalogoDto": {
         "required": [
           "codigo",
@@ -2038,6 +2154,45 @@
         },
         "description": "Sobre estándar de las respuestas exitosas."
       },
+      "RespuestaApiOfRespuestaCarga": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RespuestaCarga"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
       "RespuestaApiOfTiposDocumentoDeExpedienteDto": {
         "required": [
           "codigo",
@@ -2097,6 +2252,56 @@
             "items": {
               "$ref": "#/components/schemas/DocumentoCambioEstadoDto"
             }
+          }
+        }
+      },
+      "RespuestaCarga": {
+        "required": [
+          "correlativo",
+          "estadoCarga",
+          "idExpediente",
+          "idTipoDocumento",
+          "nombreDocumento",
+          "tamanoBytes",
+          "hashSha256"
+        ],
+        "type": "object",
+        "properties": {
+          "correlativo": {
+            "type": "string"
+          },
+          "estadoCarga": {
+            "type": "string"
+          },
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "idTipoDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nombreDocumento": {
+            "type": "string"
+          },
+          "tamanoBytes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "hashSha256": {
+            "type": "string"
           }
         }
       },
@@ -2389,13 +2594,16 @@
       "name": "Auth"
     },
     {
+      "name": "Cargas"
+    },
+    {
+      "name": "Documentos"
+    },
+    {
       "name": "Catalogos"
     },
     {
       "name": "Consultas"
-    },
-    {
-      "name": "Documentos"
     },
     {
       "name": "Estados"

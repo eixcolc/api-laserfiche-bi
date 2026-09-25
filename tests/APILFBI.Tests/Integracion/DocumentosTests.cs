@@ -136,6 +136,7 @@ public sealed class DocumentosTests(ApiFactory api)
         var mal = await DataAsync(await cliente.GetAsync($"/api/v1/cargas/MAL-{entryMal}"));
         Assert.Equal("Rechazado", mal.GetProperty("estadoCarga").GetString());
         Assert.Equal("FormatoNoPermitido", mal.GetProperty("motivoRechazo").GetString());
+        Assert.Equal(JsonValueKind.Null, mal.GetProperty("idDocumento").ValueKind);
 
         var noExiste = await cliente.GetAsync("/api/v1/cargas/NO-EXISTE-123");
         Assert.Equal(HttpStatusCode.NotFound, noExiste.StatusCode);

@@ -91,6 +91,8 @@ servidor se indica con la variable `BILF_TEST_SERVER`. Si no hay SQL Server, esa
 | `Bitacora:*` | Tamaño de la cola y de los lotes de escritura |
 | `RateLimit:*` | Límites por instancia; el límite global va en el balanceador |
 | `Proxy:ProxiesConocidos` | IPs del balanceador, para tomar la IP real del cliente de `X-Forwarded-For` |
+| `CargaApi:CarpetaImportAgent` | Carpeta que vigila Import Agent, donde la API deja lo que recibe por `POST /expedientes/{id}/documentos`. En producción es una ruta UNC compartida por todas las instancias, con permiso de escritura para la cuenta de la API |
+| `CargaApi:TamanoMaximoSolicitudMB` | Tamaño máximo de una carga por la API (50). **El balanceador y IIS deben permitir al menos ese tamaño** |
 | `DataProtection:CertificadoThumbprint` | Certificado que cifra las llaves de Data Protection en producción |
 | `OpenApi:Habilitado` | Publica `/openapi/v1.json` y `/swagger` |
 | `Laserfiche:Simulado` | `true` (por defecto): no se conecta a Laserfiche y entrega documentos de prueba |
@@ -100,6 +102,14 @@ servidor se indica con la variable `BILF_TEST_SERVER`. Si no hay SQL Server, esa
 | `Laserfiche:Campos:*` | Nombres de los campos de la plantilla que actualiza la API |
 | `Laserfiche:TimeoutSegundos`, `Reintentos` | Resiliencia: timeout por intento, reintentos y circuit breaker |
 | `Laserfiche:Simulacion:CarpetaArchivos` | Carpeta opcional con archivos `{entryId}.{ext}` para el modo simulado |
+
+## Antivirus en la carga por la API
+
+La API recibe archivos directamente, así que antes de producción conviene escanearlos. Hoy el
+escaneo está **apagado**: la implementación por defecto de `IEscanerAntivirus` no escanea. Para
+activarlo se registra otra implementación (por ejemplo Microsoft Defender con `MpCmdRun.exe`, o un
+servicio ICAP) según la norma del equipo de seguridad. Un archivo rechazado responde el código 413.
+Mientras tanto, se puede escanear la carpeta de Import Agent con el antivirus del servidor.
 
 ## Conectar Laserfiche real
 

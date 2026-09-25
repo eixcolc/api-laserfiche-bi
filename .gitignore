@@ -484,3 +484,7 @@ $RECYCLE.BIN/
 # Configuración local del editor (contiene credenciales)
 .vscode/
 
+
+# Carpetas de la simulación local de carga (herramientas/SimularCarga.ps1)
+simulacion/
+

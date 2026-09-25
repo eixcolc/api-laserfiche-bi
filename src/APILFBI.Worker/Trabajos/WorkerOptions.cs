@@ -18,6 +18,9 @@ public sealed class WorkerOptions
     /// <summary>Cada cuántos segundos se reintentan las actualizaciones pendientes hacia Laserfiche.</summary>
     [Range(5, 3600)] public int IntervaloSincronizacionSegundos { get; set; } = 30;
 
+    /// <summary>Alerta si una carga recibida por la API sigue sin registrarse después de estos minutos.</summary>
+    [Range(1, 10080)] public int AlertaCargasRecibidasMinutos { get; set; } = 60;
+
     /// <summary>Ejecuta el vencimiento al arrancar, además de a la hora programada (útil si el servidor estuvo apagado).</summary>
     public bool EjecutarVencimientoAlIniciar { get; set; }
 

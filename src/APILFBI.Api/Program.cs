@@ -34,18 +34,25 @@ app.UseExceptionHandler();
 app.UseSerilogRequestLogging(o => o.EnrichDiagnosticContext = (diag, http) =>
     diag.Set("UsuarioServicio", http.User.FindFirst("client_id")?.Value ?? "(anonimo)"));
 
-app.UseAuthentication();
-app.UseRateLimiter();
-app.UseAuthorization();
+var openApiHabilitado = app.Configuration.GetValue("OpenApi:Habilitado", false);
 
-if (app.Configuration.GetValue("OpenApi:Habilitado", false))
-{
-    app.MapOpenApi().AllowAnonymous();
+// Swagger UI es un middleware (no un endpoint): va antes de la autorización, porque la política
+// por defecto exige token en todo y bloquearía la página.
+if (openApiHabilitado)
     app.UseSwaggerUI(o =>
     {
         o.SwaggerEndpoint("/openapi/v1.json", "APILFBI v1");
         o.RoutePrefix = "swagger";
     });
+
+app.UseAuthentication();
+app.UseRateLimiter();
+app.UseAuthorization();
+
+if (openApiHabilitado)
+{
+    app.MapOpenApi().AllowAnonymous();
+    app.MapGet("/", () => Results.Redirect("/swagger")).AllowAnonymous().ExcludeFromDescription();
 }
 
 // Salud para el balanceador: live = el proceso responde; ready = puede recibir tráfico.

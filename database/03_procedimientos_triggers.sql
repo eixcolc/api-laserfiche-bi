@@ -771,6 +771,163 @@ END
 GO
 
 /* =====================================================================================
+   VALIDACIÓN DE UNA CARGA (común a la carga por SFTP y por la API)
+   Devuelve el código de cat.MotivoRechazoCarga del primer problema, o NULL si la carga es válida.
+   La usan trx.usp_RecibirCarga (API, antes de aceptar el archivo) y trx.usp_RegistrarDocumento
+   (workflow, al registrar), para que ambos caminos apliquen exactamente las mismas reglas.
+   ===================================================================================== */
+CREATE OR ALTER FUNCTION trx.fn_MotivoRechazoCarga (
+    @IdExpediente               bigint,
+    @IdTipoDocumento            int,
+    @NombreDocumento            nvarchar(260),
+    @TamanoBytes                bigint,
+    @LaserficheEntryIdReemplaza int)
+RETURNS varchar(50)
+AS
+BEGIN
+    DECLARE @IdTipoExpediente int, @IdTipoCliente int, @PermiteCambios bit, @TamanoMaximoMB int, @TipoExiste bit = 0,
+            @Extension varchar(20), @IdTipoArchivo int, @IdReemplaza bigint, @ReemplazaVigente bit;
+
+    SELECT @IdTipoExpediente = e.IdTipoExpediente, @IdTipoCliente = e.IdTipoCliente, @PermiteCambios = ee.PermiteCambios
+    FROM trx.Expediente e JOIN cat.EstadoExpediente ee ON ee.IdEstadoExpediente = e.IdEstadoExpediente
+    WHERE e.IdExpediente = @IdExpediente;
+
+    SELECT @TamanoMaximoMB = TamanoMaximoMB, @TipoExiste = 1
+    FROM cat.TipoDocumento WHERE IdTipoDocumento = @IdTipoDocumento AND Activo = 1;
+
+    IF CHARINDEX('.', @NombreDocumento) > 0
+        SET @Extension = LOWER(RIGHT(@NombreDocumento, CHARINDEX('.', REVERSE(@NombreDocumento)) - 1));
+    SELECT @IdTipoArchivo = IdTipoArchivo FROM cat.TipoArchivo WHERE Codigo = @Extension AND Activo = 1;
+
+    -- Reemplazo explícito: mismo tipo y en el mismo expediente o en uno de la misma persona.
+    -- Si es de otro cliente se trata como inexistente (no se revela que existe).
+    IF @LaserficheEntryIdReemplaza IS NOT NULL
+        SELECT @IdReemplaza = d.IdDocumento, @ReemplazaVigente = d.Vigente
+        FROM trx.Documento d
+        WHERE d.LaserficheEntryId = @LaserficheEntryIdReemplaza
+          AND d.IdTipoDocumento = @IdTipoDocumento
+          AND EXISTS (SELECT 1 FROM trx.ExpedienteDocumento ed
+                      WHERE ed.IdDocumento = d.IdDocumento
+                        AND (ed.IdExpediente = @IdExpediente
+                             OR ed.IdExpediente IN (SELECT po.IdExpediente
+                                                    FROM trx.ExpedientePersona pm
+                                                    JOIN trx.ExpedientePersona po ON po.IdentidadPersonaNormalizada = pm.IdentidadPersonaNormalizada
+                                                    WHERE pm.IdExpediente = @IdExpediente)));
+
+    RETURN CASE
+        WHEN @IdTipoExpediente IS NULL                                               THEN 'ExpedienteNoExiste'
+        WHEN @PermiteCambios = 0                                                     THEN 'ExpedienteCerrado'
+        WHEN @TipoExiste = 0                                                         THEN 'TipoDocumentoNoExiste'
+        WHEN NOT EXISTS (SELECT 1 FROM cat.TipoExpedienteTipoDocumento
+                         WHERE IdTipoExpediente = @IdTipoExpediente AND IdTipoDocumento = @IdTipoDocumento
+                           AND Activo = 1)                                           THEN 'TipoNoPerteneceTipoExpediente'
+        WHEN NOT EXISTS (SELECT 1 FROM cat.TipoExpedienteTipoDocumento
+                         WHERE IdTipoExpediente = @IdTipoExpediente AND IdTipoDocumento = @IdTipoDocumento
+                           AND Activo = 1 AND (IdTipoCliente = @IdTipoCliente OR IdTipoCliente IS NULL)) THEN 'TipoNoAplicaTipoCliente'
+        WHEN @IdTipoArchivo IS NULL
+          OR NOT EXISTS (SELECT 1 FROM cat.TipoDocumentoTipoArchivo
+                         WHERE IdTipoDocumento = @IdTipoDocumento AND IdTipoArchivo = @IdTipoArchivo
+                           AND Activo = 1)                                           THEN 'FormatoNoPermitido'
+        WHEN @TamanoBytes > CAST(@TamanoMaximoMB AS bigint) * 1048576                THEN 'TamanoExcedido'
+        WHEN @LaserficheEntryIdReemplaza IS NOT NULL AND @IdReemplaza IS NULL       THEN 'DocumentoReemplazaNoExiste'
+        -- Ya lo reemplazó una versión más reciente: se rechaza para no descartar un documento que el CRM no conoce.
+        WHEN @LaserficheEntryIdReemplaza IS NOT NULL AND @ReemplazaVigente = 0       THEN 'DocumentoReemplazaNoVigente'
+    END;
+END
+GO
+
+/* =====================================================================================
+   RECIBIR CARGA POR LA API (POST /expedientes/{id}/documentos)
+   Valida con trx.fn_MotivoRechazoCarga y reserva el correlativo con estado Recibido. La API deja
+   después el par archivo + XML en la carpeta de Import Agent; el workflow completa el registro con
+   trx.usp_RegistrarDocumento, que pasa la carga a Importado o Rechazado.
+   Códigos: 5 = recibida | 506 = correlativo en uso | el código del motivo de rechazo.
+   Un correlativo ya rechazado se puede reutilizar (reenvío corregido), igual que por SFTP.
+   ===================================================================================== */
+CREATE OR ALTER PROCEDURE trx.usp_RecibirCarga
+    @IdExpediente               bigint,
+    @Correlativo                varchar(50),
+    @IdTipoDocumento            int,
+    @NombreDocumento            nvarchar(260),
+    @TamanoBytes                bigint,
+    @UsuarioServicio            nvarchar(100),
+    @UsuarioOperacion           nvarchar(100),
+    @LaserficheEntryIdReemplaza int           = NULL,
+    @XmlGenerado                xml           = NULL,
+    @IpOrigen                   varchar(45)   = NULL,
+    @Instancia                  nvarchar(100) = NULL,
+    @CorrelationId              varchar(64)   = NULL,
+    @Endpoint                   nvarchar(300) = NULL,
+    @CodigoRespuesta            int           = NULL OUTPUT,
+    @Mensaje                    nvarchar(300) = NULL OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @Motivo varchar(50), @EstadoPrevio varchar(50), @Detalle nvarchar(2000);
+    SELECT @CodigoRespuesta = NULL, @Mensaje = NULL;
+
+    SET @Motivo = trx.fn_MotivoRechazoCarga(@IdExpediente, @IdTipoDocumento, @NombreDocumento, @TamanoBytes, @LaserficheEntryIdReemplaza);
+
+    IF @Motivo IS NOT NULL
+        SELECT @CodigoRespuesta = CodigoRespuesta, @Mensaje = Nombre FROM cat.MotivoRechazoCarga WHERE Codigo = @Motivo;
+    ELSE
+    BEGIN
+        BEGIN TRANSACTION;
+
+        SELECT @EstadoPrevio = ec.Codigo
+        FROM trx.CargaDocumento c WITH (UPDLOCK, HOLDLOCK)
+        JOIN cat.EstadoCarga ec ON ec.IdEstadoCarga = c.IdEstadoCarga
+        WHERE c.Correlativo = @Correlativo;
+
+        IF @EstadoPrevio IS NULL
+            INSERT INTO trx.CargaDocumento (Correlativo, IdExpediente, IdTipoDocumento, IdEstadoCarga, XmlOriginal, CreadoPor)
+            SELECT @Correlativo, @IdExpediente, @IdTipoDocumento, IdEstadoCarga, @XmlGenerado, COALESCE(@UsuarioOperacion, @UsuarioServicio)
+            FROM cat.EstadoCarga WHERE Codigo = 'Recibido';
+        ELSE IF @EstadoPrevio = 'Rechazado'
+            UPDATE trx.CargaDocumento
+            SET IdExpediente = @IdExpediente, IdTipoDocumento = @IdTipoDocumento,
+                IdEstadoCarga = (SELECT IdEstadoCarga FROM cat.EstadoCarga WHERE Codigo = 'Recibido'),
+                IdMotivoRechazoCarga = NULL, DetalleRechazo = NULL, LaserficheEntryId = NULL, XmlOriginal = @XmlGenerado,
+                FechaHoraRecepcion = SYSUTCDATETIME(), ModificadoPor = COALESCE(@UsuarioOperacion, @UsuarioServicio),
+                FechaModificacion = SYSUTCDATETIME()
+            WHERE Correlativo = @Correlativo;
+
+        COMMIT TRANSACTION;
+
+        SET @CodigoRespuesta = CASE WHEN @EstadoPrevio IS NULL OR @EstadoPrevio = 'Rechazado' THEN 5 ELSE 506 END;
+    END
+
+    IF @Mensaje IS NULL SELECT @Mensaje = Mensaje FROM cat.CodigoRespuesta WHERE Codigo = @CodigoRespuesta;
+
+    SET @Detalle = CONCAT(N'Tipo de documento: ', @IdTipoDocumento, N'. Archivo: ', @NombreDocumento, N'. Bytes: ', @TamanoBytes,
+                          CASE WHEN @Motivo IS NOT NULL THEN N'. Motivo: ' + @Motivo ELSE N'' END);
+    EXEC aud.usp_RegistrarBitacora @CodigoTipoOperacion = 'RecepcionCarga', @CodigoRespuesta = @CodigoRespuesta,
+         @IdExpediente = @IdExpediente, @Correlativo = @Correlativo, @UsuarioServicio = @UsuarioServicio,
+         @UsuarioOperacion = @UsuarioOperacion, @IpOrigen = @IpOrigen, @Instancia = @Instancia,
+         @CorrelationId = @CorrelationId, @Endpoint = @Endpoint, @MetodoHttp = 'POST', @Detalle = @Detalle;
+END
+GO
+
+/* =====================================================================================
+   ANULAR RECEPCIÓN: la API la llama si no pudo dejar el archivo en la carpeta de Import Agent,
+   para que el correlativo no quede como Recibido para siempre. Solo borra cargas aún Recibidas.
+   ===================================================================================== */
+CREATE OR ALTER PROCEDURE trx.usp_AnularRecepcionCarga
+    @Correlativo varchar(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE c
+    FROM trx.CargaDocumento c
+    JOIN cat.EstadoCarga ec ON ec.IdEstadoCarga = c.IdEstadoCarga AND ec.Codigo = 'Recibido'
+    WHERE c.Correlativo = @Correlativo
+      AND NOT EXISTS (SELECT 1 FROM trx.Documento d WHERE d.IdCargaDocumento = c.IdCargaDocumento);
+END
+GO
+
+/* =====================================================================================
    REGISTRAR DOCUMENTO (workflow de Laserfiche, después de que Import Agent importa el archivo)
 
    Devuelve un result set de una fila: CodigoRespuesta, Mensaje, IdDocumento, LaserficheEntryId,
@@ -852,50 +1009,27 @@ BEGIN
             SET @Extension = LOWER(RIGHT(@NombreDocumento, CHARINDEX('.', REVERSE(@NombreDocumento)) - 1));
         SELECT @IdTipoArchivo = IdTipoArchivo FROM cat.TipoArchivo WHERE Codigo = @Extension AND Activo = 1;
 
+        -- Documento a reemplazar (ya validado por trx.fn_MotivoRechazoCarga: mismo tipo, misma persona, vigente).
         IF @LaserficheEntryIdReemplaza IS NOT NULL
             SELECT @IdReemplazaExplicito = IdDocumento FROM trx.Documento
-            WHERE LaserficheEntryId = @LaserficheEntryIdReemplaza AND IdTipoDocumento = @IdTipoDocumento;
+            WHERE LaserficheEntryId = @LaserficheEntryIdReemplaza AND IdTipoDocumento = @IdTipoDocumento AND Vigente = 1;
 
+        -- Validaciones propias del registro; las comunes con la carga por la API están en la función.
         SET @Motivo = CASE
             WHEN NULLIF(TRIM(@Correlativo), '') IS NULL OR @LaserficheEntryId IS NULL
               OR @FechaEmision IS NULL OR NULLIF(TRIM(@UsuarioCarga), '') IS NULL          THEN 'XmlInvalido'
             WHEN @EstadoCargaPrevio = 'Importado' AND @EntryPrevio <> @LaserficheEntryId     THEN 'Duplicado'
-            WHEN @IdTipoExpediente IS NULL                                                  THEN 'ExpedienteNoExiste'
-            WHEN @PermiteCambios = 0                                                        THEN 'ExpedienteCerrado'
-            WHEN @Regla IS NULL                                                             THEN 'TipoDocumentoNoExiste'
-            WHEN NOT EXISTS (SELECT 1 FROM cat.TipoExpedienteTipoDocumento
-                             WHERE IdTipoExpediente = @IdTipoExpediente AND IdTipoDocumento = @IdTipoDocumento
-                               AND Activo = 1)                                              THEN 'TipoNoPerteneceTipoExpediente'
-            WHEN NOT EXISTS (SELECT 1 FROM cat.TipoExpedienteTipoDocumento
-                             WHERE IdTipoExpediente = @IdTipoExpediente AND IdTipoDocumento = @IdTipoDocumento
-                               AND Activo = 1 AND (IdTipoCliente = @IdTipoCliente OR IdTipoCliente IS NULL)) THEN 'TipoNoAplicaTipoCliente'
-            WHEN @IdTipoArchivo IS NULL
-              OR NOT EXISTS (SELECT 1 FROM cat.TipoDocumentoTipoArchivo
-                             WHERE IdTipoDocumento = @IdTipoDocumento AND IdTipoArchivo = @IdTipoArchivo
-                               AND Activo = 1)                                              THEN 'FormatoNoPermitido'
-            WHEN @TamanoBytes > CAST(@TamanoMaximoMB AS bigint) * 1048576                   THEN 'TamanoExcedido'
-            WHEN @HashSha256 IS NOT NULL AND @HashSha256Calculado IS NOT NULL
-              AND UPPER(@HashSha256) <> UPPER(@HashSha256Calculado)                        THEN 'HashNoCoincide'
-            WHEN @LaserficheEntryIdReemplaza IS NOT NULL AND @IdReemplazaExplicito IS NULL THEN 'DocumentoReemplazaNoExiste'
         END;
+        IF @Motivo IS NULL
+            SET @Motivo = trx.fn_MotivoRechazoCarga(@IdExpediente, @IdTipoDocumento, @NombreDocumento, @TamanoBytes, @LaserficheEntryIdReemplaza);
+        IF @Motivo IS NULL AND @HashSha256 IS NOT NULL AND @HashSha256Calculado IS NOT NULL
+           AND UPPER(@HashSha256) <> UPPER(@HashSha256Calculado)
+            SET @Motivo = 'HashNoCoincide';
 
         /* ---------- Rechazo ---------- */
         IF @Motivo IS NOT NULL
         BEGIN
-            SET @CodigoRespuesta = CASE @Motivo
-                WHEN 'XmlInvalido'                   THEN 100
-                WHEN 'Duplicado'                     THEN 504
-                WHEN 'ExpedienteNoExiste'            THEN 300
-                WHEN 'ExpedienteCerrado'             THEN 405
-                WHEN 'TipoDocumentoNoExiste'         THEN 303
-                WHEN 'TipoNoPerteneceTipoExpediente' THEN 406
-                WHEN 'TipoNoAplicaTipoCliente'       THEN 406
-                WHEN 'FormatoNoPermitido'            THEN 407
-                WHEN 'TamanoExcedido'                THEN 410
-                WHEN 'HashNoCoincide'                THEN 411
-                WHEN 'DocumentoReemplazaNoExiste'    THEN 301
-            END;
-            SELECT @Mensaje = Nombre FROM cat.MotivoRechazoCarga WHERE Codigo = @Motivo;
+            SELECT @CodigoRespuesta = CodigoRespuesta, @Mensaje = Nombre FROM cat.MotivoRechazoCarga WHERE Codigo = @Motivo;
 
             -- Un correlativo ya importado con otro documento no se toca; solo se registra en bitácora.
             IF @Motivo <> 'Duplicado' AND NULLIF(TRIM(@Correlativo), '') IS NOT NULL

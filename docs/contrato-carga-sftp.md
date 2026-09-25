@@ -1,10 +1,71 @@
-# Contrato de carga de documentos por SFTP
+# Contrato de carga de documentos
 
 **Versión del contrato:** 1.0 · **Criterios:** 11, 12, 13 y 14
 
-La API **no recibe archivos**. El CRM deja cada documento en una carpeta SFTP del servidor de
-Laserfiche; Laserfiche Import Agent lo importa y un workflow lo registra en la base BILF. El CRM
-consulta el resultado con la API.
+Hay **dos canales** de carga que terminan en el mismo lugar: la carpeta que vigila Laserfiche Import
+Agent. Desde ahí, el workflow registra el documento en BILF con las mismas reglas.
+
+| Canal | Cómo | Cuándo conviene |
+|---|---|---|
+| **API** (recomendado) | `POST /api/v1/expedientes/{idExpediente}/documentos` con el archivo y la metadata en un `multipart/form-data`. La API arma el XML | El CRM se entera **al instante** si el documento es inválido (formato, contenido, tamaño, tipo que no aplica) |
+| **SFTP** | El CRM deja el par archivo + XML en la carpeta SFTP (ver abajo) | Cargas masivas o si el CRM ya tiene el proceso de archivos |
+
+En los dos casos el resultado final se consulta con `GET /api/v1/cargas/{correlativo}`.
+
+## Canal API
+
+```http
+POST /api/v1/expedientes/1024/documentos
+Authorization: Bearer …
+X-Operation-User: 51451
+Idempotency-Key: crm-000123
+Content-Type: multipart/form-data
+
+archivo=<el archivo>  idTipoDocumento=32  fechaEmision=2026-09-01
+nombreUsuarioCarga=Reina Pasita Caceres Palacios  comentario=…
+```
+
+| Campo | Obligatorio | Equivale en el XML a |
+|---|---|---|
+| `archivo` | Sí | El archivo `{Correlativo}_archivo.{ext}` |
+| `idTipoDocumento` | Sí | `tipoDocumento` |
+| `fechaEmision` | Sí | `fechaEmision` (`AAAA-MM-DD`) |
+| `nombreUsuarioCarga` | Sí | `nombreUsuarioCarga` |
+| `fechaVencimiento` | No | `fechaVencimiento` |
+| `comentario` | No | `comentario` |
+| `idDocumentoReemplaza` | No | `idDocumentoReemplaza` |
+| `correlativo` | No | `correlativo`. Si no viene, lo genera la API (`API…`) |
+| `hashSha256` | No | La API calcula el hash; si el CRM lo envía y no coincide, rechaza (411) |
+| Header `X-Operation-User` | Sí | `usuarioCarga` (hasta 50 caracteres) |
+| Ruta `{idExpediente}` | Sí | `idExpediente` |
+
+La API también pone `nombreDocumento` y `fechaHoraCarga`.
+
+**Respuesta:** `202 Accepted`, código **5**, con el `correlativo` y el header
+`Location: /api/v1/cargas/{correlativo}`. La carga queda en estado **Recibido** hasta que el workflow la
+registra y pasa a **Importado** o **Rechazado**.
+
+**Validaciones inmediatas** (el archivo no se deja en la carpeta si falla alguna):
+
+| Código | Causa |
+|---|---|
+| 101 / 102 | Falta un campo obligatorio o tiene formato inválido |
+| 300 | El expediente no existe |
+| 405 | El expediente está cerrado |
+| 406 | El tipo de documento no aplica al tipo de expediente o de cliente |
+| 407 | Formato no permitido para el tipo de documento, o **el contenido no corresponde a la extensión** (archivo renombrado) |
+| 410 | Supera el tamaño máximo del tipo de documento |
+| 411 | El `hashSha256` enviado no coincide |
+| 412 / 301 | `idDocumentoReemplaza` no vigente, inexistente o de otro cliente |
+| 413 | Rechazado por el antivirus (cuando se habilite) |
+| 506 | El correlativo ya está en uso por otra carga (se puede reutilizar si la carga anterior fue rechazada) |
+
+Con `Idempotency-Key`, reenviar la misma solicitud devuelve la misma respuesta sin volver a cargar.
+
+## Canal SFTP
+
+El CRM deja cada documento en una carpeta SFTP del servidor de Laserfiche; Laserfiche Import Agent
+lo importa y un workflow lo registra en la base BILF. El CRM consulta el resultado con la API.
 
 ## Flujo
 
@@ -93,7 +154,8 @@ El workflow registra el documento con `trx.usp_RegistrarDocumento`, que:
   misma persona cuyo tipo de expediente lleva ese tipo de documento;
 - si el tipo de documento es de regla **Reemplazar**, la versión nueva reemplaza a la vigente en
   los expedientes abiertos (la anterior queda como histórico). Con `idDocumentoReemplaza` se
-  reemplaza ese documento en particular.
+  reemplaza ese documento en particular: debe ser del mismo tipo, del mismo cliente y estar
+  vigente.
 
 ## Motivos de rechazo
 
@@ -111,4 +173,5 @@ El workflow registra el documento con `trx.usp_RegistrarDocumento`, que:
 | `TamanoExcedido` | El archivo supera el tamaño máximo | Reducir el archivo |
 | `HashNoCoincide` | El hash del XML no coincide con el del archivo | Volver a subir el par completo |
 | `Duplicado` | El correlativo ya se importó con otro documento | Usar otro correlativo |
-| `DocumentoReemplazaNoExiste` | `idDocumentoReemplaza` no existe o es de otro tipo | Corregir o dejar vacío |
+| `DocumentoReemplazaNoExiste` | `idDocumentoReemplaza` no existe, es de otro tipo de documento o de otro cliente | Corregir o dejar vacío |
+| `DocumentoReemplazaNoVigente` | `idDocumentoReemplaza` apunta a una versión que ya fue reemplazada por otra más reciente | Consultar los documentos del expediente y apuntar a la versión vigente (o dejar vacío para que aplique la regla del tipo) |

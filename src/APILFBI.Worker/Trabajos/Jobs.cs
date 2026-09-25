@@ -72,6 +72,34 @@ internal sealed class JobLimpiezaIdempotencia(EjecutorLimpiezaIdempotencia ejecu
 }
 
 /// <summary>
+/// Cada 15 minutos revisa si hay cargas recibidas por la API que Import Agent o el workflow no
+/// procesaron a tiempo, y lo deja como error en el log para que operaciones lo revise.
+/// </summary>
+internal sealed class JobCargasPendientes(EjecutorCargasPendientes ejecutor, IOptions<WorkerOptions> opciones,
+    ILogger<JobCargasPendientes> log) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(15));
+        do
+        {
+            try
+            {
+                var minutos = opciones.Value.AlertaCargasRecibidasMinutos;
+                var pendientes = await ejecutor.ObtenerAsync(minutos, stoppingToken);
+                if (pendientes.Count > 0)
+                    log.LogError("{Cantidad} cargas llevan más de {Minutos} minutos sin registrarse (revise Import Agent y el workflow): {Correlativos}",
+                        pendientes.Count, minutos, string.Join(", ", pendientes.Take(20)));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                log.LogError(ex, "No se pudo revisar las cargas pendientes");
+            }
+        } while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+}
+
+/// <summary>
 /// Reintenta las actualizaciones pendientes hacia Laserfiche. No necesita bloqueo: cada fila se
 /// reserva en SQL, así que varias instancias pueden correrlo a la vez.
 /// </summary>
