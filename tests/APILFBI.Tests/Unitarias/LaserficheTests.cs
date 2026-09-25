@@ -117,7 +117,7 @@ public sealed class LaserficheTests
     {
         var (cliente, servidor) = Crear();
         servidor.Responder = r => r.Method == HttpMethod.Get
-            ? Json("""{"value":[{"fieldName":"Estado","values":[{"value":"PendienteRevision","position":1}]},{"fieldName":"IdExpediente","values":[{"value":"1024","position":1}]}]}""")
+            ? Json("""{"value":[{"fieldName":"Estado","values":[{"value":"PendienteRevision","position":0}]},{"fieldName":"IdExpediente","values":[{"value":"1024","position":0}]},{"fieldName":"TipoRechazo","values":[{"value":null,"position":0}]}]}""")
             : new HttpResponseMessage(HttpStatusCode.OK);
 
         await cliente.ActualizarCamposAsync(11, new Dictionary<string, string?> { ["Estado"] = "Aprobado", ["TipoRechazo"] = null });
@@ -126,8 +126,43 @@ public sealed class LaserficheTests
         Assert.Equal("/api/v1/Repositories/REPO1/Entries/11/fields", put.Ruta);
         var cuerpo = JsonNode.Parse(put.Cuerpo!)!;
         Assert.Equal("Aprobado", cuerpo["Estado"]!["values"]![0]!["value"]!.GetValue<string>());
+        Assert.Equal(0, cuerpo["Estado"]!["values"]![0]!["position"]!.GetValue<int>());
         Assert.Equal("1024", cuerpo["IdExpediente"]!["values"]![0]!["value"]!.GetValue<string>());
-        Assert.Empty(cuerpo["TipoRechazo"]!["values"]!.AsArray());
+        var vacio = Assert.Single(cuerpo["TipoRechazo"]!["values"]!.AsArray())!;
+        Assert.Null(vacio["value"]);
+        Assert.Equal(0, vacio["position"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public async Task Actualizar_campos_usa_la_posicion_que_devuelve_laserfiche_o_cero()
+    {
+        var (cliente, servidor) = Crear();
+        servidor.Responder = r => r.Method == HttpMethod.Get
+            ? Json("""{"value":[{"fieldName":"Estado","values":[{"value":"PendienteRevision","position":1}]}]}""")
+            : new HttpResponseMessage(HttpStatusCode.OK);
+
+        await cliente.ActualizarCamposAsync(11, new Dictionary<string, string?> { ["Estado"] = "Aprobado", ["ComentarioRevision"] = "ok" });
+
+        var cuerpo = JsonNode.Parse(servidor.Solicitudes.Single(s => s.Metodo == HttpMethod.Put).Cuerpo!)!;
+        Assert.Equal(1, cuerpo["Estado"]!["values"]![0]!["position"]!.GetValue<int>());
+        Assert.Equal(0, cuerpo["ComentarioRevision"]!["values"]![0]!["position"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public async Task Error_de_laserfiche_incluye_su_mensaje()
+    {
+        var (cliente, servidor) = Crear();
+        servidor.Responder = r => r.Method == HttpMethod.Get
+            ? Json("""{"value":[]}""")
+            : new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("""{"title":"Invalid field value position."}""", System.Text.Encoding.UTF8, "application/json"),
+            };
+
+        var ex = await Assert.ThrowsAsync<ApiException>(() => cliente.ActualizarCamposAsync(11, new Dictionary<string, string?> { ["Estado"] = "Aprobado" }));
+
+        Assert.Equal(CodigosRespuesta.ErrorLaserfiche, ex.Codigo);
+        Assert.Contains("Invalid field value position.", ex.Message);
     }
 
     [Fact]

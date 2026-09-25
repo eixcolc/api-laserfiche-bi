@@ -14,11 +14,19 @@ public sealed record DocumentoDeTipoExpedienteDto(int IdTipoDocumento, string No
 
 public sealed record TiposDocumentoDeExpedienteDto(int IdTipoExpediente, string NombreTipoExpediente, IReadOnlyList<DocumentoDeTipoExpedienteDto> TiposDocumento);
 
+/// <summary>
+/// Lo que el CRM necesita para enviar una llave. Los grupos de identificación y su prioridad son
+/// configuración interna (cat.TipoExpedienteLlave) y no se exponen.
+/// </summary>
 public sealed record LlaveConfiguradaDto(
-    string Codigo, string Nombre, bool Obligatoria, int? GrupoIdentificacion, int? PrioridadGrupo,
-    string TipoDato, int LongitudMaxima, string? ExpresionValidacion, IReadOnlyList<string>? ValoresPermitidos);
+    string Codigo, string Nombre, bool Obligatoria, string TipoDato, int LongitudMaxima,
+    string? ExpresionValidacion, IReadOnlyList<string>? ValoresPermitidos);
 
-public sealed record LlavesPorTipoClienteDto(string TipoCliente, IReadOnlyList<LlaveConfiguradaDto> Llaves);
+/// <summary>
+/// Llaves del tipo de expediente y las combinaciones válidas: el CRM debe enviar completa al menos una
+/// (si no, código 103). Por ejemplo [["noCasoCRM","CIF"], ["noCasoCRM","RTN"]].
+/// </summary>
+public sealed record LlavesPorTipoClienteDto(string TipoCliente, IReadOnlyList<LlaveConfiguradaDto> Llaves, IReadOnlyList<IReadOnlyList<string>> CombinacionesValidas);
 
 public sealed record ItemCatalogoDto(string Codigo, string Nombre);
 
@@ -95,16 +103,26 @@ public sealed class CatalogosService(ICatalogoCache catalogos)
                      .GroupBy(c => c.IdTipoCliente)
                      .OrderBy(g => g.Key))
         {
+            // Una llave puede estar en varios grupos (ej. noCasoCRM): se devuelve una sola vez con la lista de grupos.
             var items = new List<LlaveConfiguradaDto>();
-            foreach (var c in grupoCliente.OrderBy(c => c.Orden).ThenBy(c => c.GrupoIdentificacion))
+            foreach (var filas in grupoCliente.GroupBy(c => c.IdLlave).OrderBy(g => g.Min(c => c.Orden)).ThenBy(g => g.Key))
             {
-                var l = llaves[c.IdLlave];
+                var l = llaves[filas.Key];
                 items.Add(new LlaveConfiguradaDto(
-                    l.Codigo, l.Nombre, c.Obligatoria, c.GrupoIdentificacion, c.PrioridadGrupo,
+                    l.Codigo, l.Nombre, filas.Any(c => c.Obligatoria),
                     tiposDato.GetValueOrDefault(l.IdTipoDato, "?"), l.LongitudMaxima, l.ExpresionValidacion,
                     await ValoresPermitidosAsync(l.CatalogoValidacion, ct)));
             }
-            resultado.Add(new LlavesPorTipoClienteDto(clientes.GetValueOrDefault(grupoCliente.Key, "?"), items));
+
+            // Combinaciones válidas (una por grupo de identificación), sin exponer grupo ni prioridad.
+            IReadOnlyList<IReadOnlyList<string>> combinaciones = grupoCliente
+                .Where(c => c.GrupoIdentificacion is not null)
+                .GroupBy(c => c.GrupoIdentificacion!.Value)
+                .OrderBy(g => g.Min(c => c.PrioridadGrupo ?? byte.MaxValue)).ThenBy(g => g.Key)
+                .Select(g => (IReadOnlyList<string>)g.OrderBy(c => c.Orden).ThenBy(c => c.IdLlave).Select(c => llaves[c.IdLlave].Codigo).ToList())
+                .ToList();
+
+            resultado.Add(new LlavesPorTipoClienteDto(clientes.GetValueOrDefault(grupoCliente.Key, "?"), items, combinaciones));
         }
 
         return resultado;

@@ -1573,8 +1573,6 @@
           "codigo",
           "nombre",
           "obligatoria",
-          "grupoIdentificacion",
-          "prioridadGrupo",
           "tipoDato",
           "longitudMaxima",
           "expresionValidacion",
@@ -1590,24 +1588,6 @@
           },
           "obligatoria": {
             "type": "boolean"
-          },
-          "grupoIdentificacion": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "prioridadGrupo": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           },
           "tipoDato": {
             "type": "string"
@@ -1655,7 +1635,8 @@
       "LlavesPorTipoClienteDto": {
         "required": [
           "tipoCliente",
-          "llaves"
+          "llaves",
+          "combinacionesValidas"
         ],
         "type": "object",
         "properties": {
@@ -1666,6 +1647,15 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LlaveConfiguradaDto"
+            }
+          },
+          "combinacionesValidas": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         }

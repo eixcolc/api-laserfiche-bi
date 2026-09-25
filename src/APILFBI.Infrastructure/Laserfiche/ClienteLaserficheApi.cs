@@ -58,24 +58,39 @@ internal sealed class ClienteLaserficheApi(
         var ruta = Ruta(opciones.Value.Rutas.Campos, entryId);
 
         using var actual = await EnviarAsync(() => new HttpRequestMessage(HttpMethod.Get, ruta), HttpCompletionOption.ResponseContentRead, ct);
-        if (!actual.IsSuccessStatusCode) throw Traducir((int)actual.StatusCode, entryId);
+        if (!actual.IsSuccessStatusCode) throw Traducir((int)actual.StatusCode, entryId, await DetalleAsync(actual, ct));
 
         var cuerpo = new JsonObject();
+        var posiciones = new Dictionary<string, JsonNode?>(StringComparer.OrdinalIgnoreCase);
         var existentes = await actual.Content.ReadFromJsonAsync<JsonNode>(ct);
         foreach (var campo in existentes?["value"]?.AsArray() ?? [])
         {
             var nombre = campo?["fieldName"]?.GetValue<string>();
-            if (nombre is null || campos.ContainsKey(nombre)) continue;
+            if (nombre is null) continue;
+            var originales = campo!["values"]?.AsArray() ?? [];
+            if (campos.ContainsKey(nombre))
+            {
+                posiciones[nombre] = originales.FirstOrDefault()?["position"]?.DeepClone();
+                continue;
+            }
             var valores = new JsonArray();
-            foreach (var v in campo!["values"]?.AsArray() ?? [])
+            foreach (var v in originales)
                 valores.Add(new JsonObject { ["value"] = v?["value"]?.DeepClone(), ["position"] = v?["position"]?.DeepClone() });
+            if (valores.Count == 0)
+                valores.Add(new JsonObject { ["value"] = null, ["position"] = 0 });
             cuerpo[nombre] = new JsonObject { ["values"] = valores };
         }
 
+        // Mismo formato que devuelve Laserfiche 11: posición del campo (base 0) y, para vaciarlo,
+        // un valor null. Laserfiche responde 400 si recibe "values": [].
         foreach (var (nombre, valor) in campos)
             cuerpo[nombre] = new JsonObject
             {
-                ["values"] = string.IsNullOrEmpty(valor) ? new JsonArray() : new JsonArray(new JsonObject { ["value"] = valor, ["position"] = 1 }),
+                ["values"] = new JsonArray(new JsonObject
+                {
+                    ["value"] = string.IsNullOrEmpty(valor) ? null : valor,
+                    ["position"] = posiciones.GetValueOrDefault(nombre) ?? JsonValue.Create(0),
+                }),
             };
 
         using var respuesta = await EnviarAsync(() => new HttpRequestMessage(HttpMethod.Put, ruta)
@@ -83,7 +98,7 @@ internal sealed class ClienteLaserficheApi(
             Content = new StringContent(cuerpo.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
         }, HttpCompletionOption.ResponseContentRead, ct);
 
-        if (!respuesta.IsSuccessStatusCode) throw Traducir((int)respuesta.StatusCode, entryId);
+        if (!respuesta.IsSuccessStatusCode) throw Traducir((int)respuesta.StatusCode, entryId, await DetalleAsync(respuesta, ct));
     }
 
     public async Task<(bool Disponible, string Detalle)> VerificarAsync(CancellationToken ct = default)
@@ -144,15 +159,42 @@ internal sealed class ClienteLaserficheApi(
         .Replace("{repositorio}", Uri.EscapeDataString(opciones.Value.RepositorioId))
         .Replace("{entryId}", entryId.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
-    private ApiException Traducir(int status, int entryId)
+    /// <summary>Mensaje de error que devuelve Laserfiche (title/detail del problem+json, o el texto), recortado.</summary>
+    private static async Task<string?> DetalleAsync(HttpResponseMessage respuesta, CancellationToken ct)
     {
-        log.LogWarning("Laserfiche respondió {Status} para la entrada {EntryId}", status, entryId);
+        try
+        {
+            var texto = await respuesta.Content.ReadAsStringAsync(ct);
+            if (string.IsNullOrWhiteSpace(texto)) return null;
+            try
+            {
+                var json = JsonNode.Parse(texto);
+                var partes = new[] { json?["title"], json?["detail"], json?["errorMessage"], json?["message"] }
+                    .Select(n => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct()
+                    .ToList();
+                if (partes.Count > 0) texto = string.Join(" | ", partes);
+            }
+            catch (JsonException) { }
+            return texto.Length > 400 ? texto[..400] + "…" : texto;
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            return null;
+        }
+    }
+
+    private ApiException Traducir(int status, int entryId, string? detalle = null)
+    {
+        log.LogWarning("Laserfiche respondió {Status} para la entrada {EntryId}: {Detalle}", status, entryId, detalle);
+        var sufijo = string.IsNullOrWhiteSpace(detalle) ? "" : $" {detalle}";
         return status switch
         {
             404 => new ApiException(CodigosRespuesta.DocumentoNoEncontrado, "El documento no existe en Laserfiche."),
             503 => new ApiException(CodigosRespuesta.LaserficheNoDisponible),
             504 => new ApiException(CodigosRespuesta.TiempoEsperaLaserfiche),
-            _ => new ApiException(CodigosRespuesta.ErrorLaserfiche, $"Laserfiche respondió {status}."),
+            _ => new ApiException(CodigosRespuesta.ErrorLaserfiche, $"Laserfiche respondió {status}.{sufijo}"),
         };
     }
 }

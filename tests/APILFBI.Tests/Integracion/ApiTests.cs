@@ -81,6 +81,26 @@ public sealed class ApiTests(ApiFactory api)
     }
 
     [FactSqlServer]
+    public async Task Publicada_en_una_subruta_swagger_la_redireccion_y_el_token_incluyen_la_subruta()
+    {
+        await using var enSubruta = api.WithWebHostBuilder(b => b.UseSetting("PathBase", "/expediente"));
+        var cliente = enSubruta.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/expediente/swagger/index.html")).StatusCode);
+
+        var raiz = await cliente.GetAsync("/expediente/");
+        Assert.Equal("/expediente/swagger", raiz.Headers.Location?.ToString());
+
+        var contrato = await cliente.GetFromJsonAsync<JsonElement>("/expediente/openapi/v1.json");
+        var tokenUrl = contrato.GetProperty("components").GetProperty("securitySchemes").GetProperty("oauth2")
+            .GetProperty("flows").GetProperty("clientCredentials").GetProperty("tokenUrl").GetString();
+        Assert.Equal("/expediente/api/v1/auth/token", tokenUrl);
+
+        var token = await cliente.PostAsync("/expediente/api/v1/auth/token", ApiFactory.FormularioToken("crm-test", api.SecretoCrm));
+        Assert.Equal(HttpStatusCode.OK, token.StatusCode);
+    }
+
+    [FactSqlServer]
     public async Task Health_live_y_ready_responden_200()
     {
         var cliente = api.CreateClient();

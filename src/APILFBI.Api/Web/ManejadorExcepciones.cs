@@ -40,9 +40,14 @@ internal sealed class ManejadorExcepciones(FabricaRespuestas respuestas, ILogger
         }
     }
 
-    /// <summary>Timeout, red, servidor o base inaccesible. El resto de SqlException es un error interno.</summary>
-    private static bool EsErrorDeConexion(SqlException ex) =>
-        ex.Number is -2 or -1 or 2 or 53 or 64 or 233 or 4060 or 10053 or 10054 or 10060 or 11001 or 40197 or 40501 or 40613;
+    /// <summary>
+    /// Timeout, red, servidor o base inaccesible, login rechazado o certificado TLS no confiable. Los errores
+    /// de severidad 20 o más son fallas de conexión. El resto de SqlException es un error interno.
+    /// </summary>
+    internal static bool EsErrorDeConexion(SqlException ex) =>
+        ex.Class >= 20
+        || ex.Number is -2 or -1 or 2 or 53 or 64 or 233 or 4060 or 18456 or 10053 or 10054 or 10060 or 11001 or 40197 or 40501 or 40613
+        || ex.InnerException is System.ComponentModel.Win32Exception;
 
     private static Task EscribirAsync(HttpContext ctx, Microsoft.AspNetCore.Mvc.IActionResult resultado) =>
         resultado.ExecuteResultAsync(new Microsoft.AspNetCore.Mvc.ActionContext

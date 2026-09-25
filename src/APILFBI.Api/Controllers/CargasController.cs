@@ -40,7 +40,7 @@ public sealed class CargasController(CargasService cargas, FabricaRespuestas res
             formulario.IdDocumentoReemplaza, formulario.NombreUsuarioCarga, formulario.Correlativo, formulario.HashSha256);
 
         var respuesta = await cargas.RecibirAsync(idExpediente, solicitud, archivo, Request.Path, ct);
-        Response.Headers.Location = $"/api/v1/cargas/{respuesta.Correlativo}";
+        Response.Headers.Location = $"{Request.PathBase}/api/v1/cargas/{respuesta.Correlativo}";
         return respuestas.Exito(HttpContext, respuesta, CodigosRespuesta.CargaRecibida);
     }
 }

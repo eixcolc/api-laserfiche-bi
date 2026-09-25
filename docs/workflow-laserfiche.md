@@ -16,7 +16,7 @@ hacer y con qué datos.
 
 ## Workflow 1: registro de documentos
 
-**Regla de inicio:** documento creado en `\CRM\Entrada\` con la plantilla del CRM (después de que
+**Regla de inicio:** documento creado en `\EXPEDIENTE\Entrada\` con la plantilla del CRM (después de que
 Import Agent lo importa).
 
 ### Pasos
@@ -64,11 +64,11 @@ Import Agent lo importa).
    - Campo `Estado` = `PendienteRevision`.
    - Campo `EstadoCargaBILF` = `Importado`.
    - Opcional: completar los campos informativos desde `trx.vw_LlavesExpediente`.
-   - Mover a `\CRM\Expedientes\{TipoExpediente}\{IdExpediente}\`.
+   - Mover a `\EXPEDIENTE\Expedientes\{TipoExpediente}\{IdExpediente}\`.
 
 5. **Si `EstadoCarga = Rechazado`:**
    - Campos `EstadoCargaBILF` = `Rechazado` y `MotivoRechazoBILF` = `MotivoRechazo`.
-   - Mover a `\CRM\Rechazados\{AAAA-MM}\`.
+   - Mover a `\EXPEDIENTE\Rechazados\{AAAA-MM}\`.
    - El CRM se entera con `GET /api/v1/cargas/{correlativo}`.
 
 6. **Si la consulta SQL falla** (base caída, timeout): reintentar. El stored procedure es

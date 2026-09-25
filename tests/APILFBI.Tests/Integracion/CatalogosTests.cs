@@ -89,12 +89,24 @@ public sealed class CatalogosTests(ApiFactory api)
         var natural = data.EnumerateArray().Single();
         Assert.Equal("N", natural.GetProperty("tipoCliente").GetString());
         var llaves = natural.GetProperty("llaves").EnumerateArray().ToList();
-        var grupo1 = llaves.Where(l => l.GetProperty("grupoIdentificacion").ValueKind == JsonValueKind.Number
-                                       && l.GetProperty("grupoIdentificacion").GetInt32() == 1)
-                           .Select(l => l.GetProperty("codigo").GetString()).ToList();
-        Assert.Equal(["noCasoCRM", "CIF"], grupo1);
-        var tipoIdentificacion = llaves.First(l => l.GetProperty("codigo").GetString() == "tipoIdentificacion");
+
+        // Cada llave aparece una sola vez, aunque esté en varios grupos, y sin datos internos de configuración.
+        var codigos = llaves.Select(l => l.GetProperty("codigo").GetString()).ToList();
+        Assert.Equal(codigos.Distinct().Count(), codigos.Count);
+        Assert.All(llaves, l =>
+        {
+            Assert.False(l.TryGetProperty("grupoIdentificacion", out _));
+            Assert.False(l.TryGetProperty("prioridadGrupo", out _));
+        });
+
+        var tipoIdentificacion = llaves.Single(l => l.GetProperty("codigo").GetString() == "tipoIdentificacion");
         Assert.Contains("DNI", tipoIdentificacion.GetProperty("valoresPermitidos").EnumerateArray().Select(v => v.GetString()));
+
+        // Las combinaciones válidas que el CRM debe enviar (al menos una completa).
+        var combinaciones = natural.GetProperty("combinacionesValidas").EnumerateArray()
+            .Select(c => string.Join(" + ", c.EnumerateArray().Select(x => x.GetString())))
+            .ToList();
+        Assert.Equal(["noCasoCRM + CIF", "noCasoCRM + tipoIdentificacion + noIdentificacion"], combinaciones);
     }
 
     [FactSqlServer]

@@ -67,9 +67,9 @@ Si se quiere ver en Laserfiche los datos del cliente, el workflow los toma de la
 ## Estructura de carpetas sugerida
 
 ```
-\CRM\Entrada\                                  ← destino de Import Agent
-\CRM\Expedientes\{TipoExpediente}\{IdExpediente}\   ← documentos importados
-\CRM\Rechazados\{AAAA-MM}\                     ← cargas rechazadas
+\EXPEDIENTE\Entrada\                                        ← destino de Import Agent
+\EXPEDIENTE\Expedientes\{TipoExpediente}\{IdExpediente}\    ← documentos importados
+\EXPEDIENTE\Rechazados\{AAAA-MM}\                           ← cargas rechazadas
 ```
 
 Un documento puede pertenecer a varios expedientes (asociación automática). En Laserfiche vive

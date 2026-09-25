@@ -10,6 +10,7 @@
 | [workflow-laserfiche.md](workflow-laserfiche.md) | Equipo Laserfiche | Workflow de registro (llamada al stored procedure) y workflow de tarea al ejecutivo |
 | [modelo-datos.md](modelo-datos.md) | Desarrollo y DBA | Tablas, stored procedures y roles de la base BILF |
 | [prueba-local.md](prueba-local.md) | Desarrollo y QA | Emular la carga por SFTP sin Laserfiche y probar los endpoints |
+| [instalacion-qa.md](instalacion-qa.md) | Desarrollo e Infraestructura | Instalar la API (IIS) y el Worker (servicio de Windows) en QA |
 
 La colección [APILFBI.Api.http](../src/APILFBI.Api/APILFBI.Api.http) tiene un ejemplo listo de cada método.
 

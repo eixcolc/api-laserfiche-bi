@@ -28,7 +28,7 @@ public sealed class ExpedientesController(ExpedientesService expedientes, Fabric
         if (!resultado.EsNuevo)
             return respuestas.Exito(HttpContext, respuesta);
 
-        Response.Headers.Location = $"/api/v1/expedientes/{resultado.Expediente.IdExpediente}";
+        Response.Headers.Location = $"{Request.PathBase}/api/v1/expedientes/{resultado.Expediente.IdExpediente}";
         return respuestas.Exito(HttpContext, respuesta, CodigosRespuesta.Creado);
     }
 

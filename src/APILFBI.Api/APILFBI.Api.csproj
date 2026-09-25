@@ -20,5 +20,10 @@
     <ProjectReference Include="..\APILFBI.Infrastructure\APILFBI.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- La configuración de desarrollo (conexión local) no se publica al servidor. -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>
 

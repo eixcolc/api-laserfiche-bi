@@ -16,8 +16,11 @@ builder.Host.UseSerilog((ctx, servicios, log) => log
     .Enrich.FromLogContext()
     .Enrich.WithProperty("Instancia", Environment.MachineName));
 
-// La API no recibe archivos (la carga va por SFTP): se limita el tamaño del body.
-builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = 1 * 1024 * 1024);
+// Límite general del body: 1 MB. Solo el endpoint de carga lo amplía (CargaApi:TamanoMaximoSolicitudMB).
+// Se configura para Kestrel y para IIS, que tiene su propio límite por defecto (~28 MB).
+const long LimiteBody = 1 * 1024 * 1024;
+builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = LimiteBody);
+builder.Services.Configure<Microsoft.AspNetCore.Builder.IISServerOptions>(o => o.MaxRequestBodySize = LimiteBody);
 
 builder.Services.AddAplicacion();
 builder.Services.AddInfraestructura(builder.Configuration);
@@ -27,6 +30,12 @@ var app = builder.Build();
 
 if (args.Contains(ComandoCrearCuenta.Nombre))
     return await ComandoCrearCuenta.EjecutarAsync(app.Services, args);
+
+// Publicada en una subruta (ej. https://servidor/expediente). En IIS la subruta de la aplicación la pone
+// el módulo automáticamente; esta opción es para Kestrel detrás de un proxy.
+var pathBase = app.Configuration["PathBase"];
+if (!string.IsNullOrWhiteSpace(pathBase))
+    app.UsePathBase(pathBase);
 
 app.UseForwardedHeaders();
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -41,7 +50,8 @@ var openApiHabilitado = app.Configuration.GetValue("OpenApi:Habilitado", false);
 if (openApiHabilitado)
     app.UseSwaggerUI(o =>
     {
-        o.SwaggerEndpoint("/openapi/v1.json", "APILFBI v1");
+        // Relativa a /swagger/: funciona en la raíz y en una subruta (/expediente/openapi/v1.json).
+        o.SwaggerEndpoint("../openapi/v1.json", "APILFBI v1");
         o.RoutePrefix = "swagger";
     });
 
@@ -52,7 +62,7 @@ app.UseAuthorization();
 if (openApiHabilitado)
 {
     app.MapOpenApi().AllowAnonymous();
-    app.MapGet("/", () => Results.Redirect("/swagger")).AllowAnonymous().ExcludeFromDescription();
+    app.MapGet("/", (HttpContext ctx) => Results.Redirect($"{ctx.Request.PathBase}/swagger")).AllowAnonymous().ExcludeFromDescription();
 }
 
 // Salud para el balanceador: live = el proceso responde; ready = puede recibir tráfico.

@@ -5,12 +5,15 @@ using Microsoft.OpenApi;
 namespace APILFBI.Api.Web;
 
 /// <summary>Declara en el contrato OpenAPI el esquema OAuth 2.0 client_credentials.</summary>
-internal sealed class TransformadorSeguridadOpenApi : IOpenApiDocumentTransformer
+internal sealed class TransformadorSeguridadOpenApi(IHttpContextAccessor accesor) : IOpenApiDocumentTransformer
 {
     public const string Esquema = "oauth2";
 
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
+        // Incluye la subruta de publicación (ej. /expediente) para que Authorize de Swagger funcione.
+        var pathBase = accesor.HttpContext?.Request.PathBase.Value ?? string.Empty;
+
         document.Info.Title = "APILFBI";
         document.Info.Description = "API de gestión documental CRM ↔ Laserfiche 11.";
 
@@ -24,7 +27,7 @@ internal sealed class TransformadorSeguridadOpenApi : IOpenApiDocumentTransforme
             {
                 ClientCredentials = new OpenApiOAuthFlow
                 {
-                    TokenUrl = new Uri("/api/v1/auth/token", UriKind.Relative),
+                    TokenUrl = new Uri($"{pathBase}/api/v1/auth/token", UriKind.Relative),
                     Scopes = Scopes.Todos.ToDictionary(s => s, s => s),
                 },
             },
