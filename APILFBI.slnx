@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/APILFBI.Api/APILFBI.Api.csproj" />
+    <Project Path="src/APILFBI.Application/APILFBI.Application.csproj" />
+    <Project Path="src/APILFBI.Domain/APILFBI.Domain.csproj" />
+    <Project Path="src/APILFBI.Infrastructure/APILFBI.Infrastructure.csproj" />
+    <Project Path="src/APILFBI.Worker/APILFBI.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/APILFBI.Tests/APILFBI.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<expediente version="1.0">
+  <idExpediente>1024</idExpediente>
+  <informacionDocumento>
+    <correlativo>000124</correlativo>
+    <tipoDocumento>30</tipoDocumento>
+    <nombreDocumento>000124_archivo.jpg</nombreDocumento>
+    <hashSha256></hashSha256>
+    <fechaEmision>2026-09-01</fechaEmision>
+    <fechaVencimiento></fechaVencimiento>
+    <comentario></comentario>
+    <idDocumentoReemplaza></idDocumentoReemplaza>
+    <usuarioCarga>51451</usuarioCarga>
+    <nombreUsuarioCarga>Reina Pasita Caceres Palacios</nombreUsuarioCarga>
+    <fechaHoraCarga>2026-09-24T10:20:00-06:00</fechaHoraCarga>
+  </informacionDocumento>
+</expediente>

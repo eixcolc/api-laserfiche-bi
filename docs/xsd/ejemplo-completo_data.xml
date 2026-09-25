@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<expediente version="1.0">
+  <idExpediente>1024</idExpediente>
+  <informacionDocumento>
+    <correlativo>000123</correlativo>
+    <tipoDocumento>32</tipoDocumento>
+    <nombreDocumento>000123_archivo.pdf</nombreDocumento>
+    <hashSha256>9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08</hashSha256>
+    <fechaEmision>2026-09-01</fechaEmision>
+    <fechaVencimiento>2027-08-31</fechaVencimiento>
+    <comentario>Estados financieros al cierre de agosto</comentario>
+    <idDocumentoReemplaza>5001</idDocumentoReemplaza>
+    <usuarioCarga>51451</usuarioCarga>
+    <nombreUsuarioCarga>Reina Pasita Caceres Palacios</nombreUsuarioCarga>
+    <fechaHoraCarga>2026-09-24T10:15:00-06:00</fechaHoraCarga>
+  </informacionDocumento>
+</expediente>

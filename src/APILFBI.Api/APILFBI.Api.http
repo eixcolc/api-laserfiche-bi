@@ -1,0 +1,116 @@
+### Variables: reemplaza el secreto por el que imprimió "crear-cuenta"
+@base = http://localhost:5080
+@clientId = crm-dev
+@clientSecret = PEGAR_SECRETO_AQUI
+
+### 1. Token (criterio 2) - dura 1 hora
+# @name token
+POST {{base}}/api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id={{clientId}}&client_secret={{clientSecret}}
+
+###
+@auth = Bearer {{token.response.body.$.access_token}}
+
+### 2. Tipos de expediente (criterio 5)
+GET {{base}}/api/v1/tipos-expediente
+Authorization: {{auth}}
+
+### 3. Tipos de documento de un tipo de expediente (criterio 3), por id y por nombre
+GET {{base}}/api/v1/tipos-expediente/1/tipos-documento?tipoCliente=J
+Authorization: {{auth}}
+
+###
+GET {{base}}/api/v1/tipos-expediente/tipos-documento?nombreTipoExpediente=Banca Corporativa
+Authorization: {{auth}}
+
+### 4. Todos los tipos de documento (criterio 4)
+GET {{base}}/api/v1/tipos-documento
+Authorization: {{auth}}
+
+### 5. Llaves que hay que enviar para un tipo de expediente
+GET {{base}}/api/v1/tipos-expediente/1/llaves?tipoCliente=J
+Authorization: {{auth}}
+
+### 6. Listas para el CRM: estados-documento, tipos-rechazo, etapas-rechazo, tipos-identificacion, segmentaciones, tipos-archivo, tipos-cliente
+GET {{base}}/api/v1/catalogos/tipos-rechazo
+Authorization: {{auth}}
+
+### 7. Obtener o crear expediente (paso previo a la carga por SFTP)
+# @name expediente
+POST {{base}}/api/v1/expedientes
+Authorization: {{auth}}
+Content-Type: application/json
+X-Operation-User: 51451
+Idempotency-Key: ejemplo-0001-expediente
+
+{
+  "idTipoExpediente": 1,
+  "llaves": [
+    { "tipo": "TipoCliente", "valor": "J" },
+    { "tipo": "noCasoCRM", "valor": "536252673" },
+    { "tipo": "CIF", "valor": "12345678" },
+    { "tipo": "RTN", "valor": "0801-1999-123456" },
+    { "tipo": "NombreComercial", "valor": "Empresa Ejemplo" },
+    { "tipo": "razonSocial", "valor": "Empresa Ejemplo S.A." },
+    { "tipo": "segmentacion", "valor": "Corporativo" }
+  ]
+}
+
+### 8. Consultar el expediente
+GET {{base}}/api/v1/expedientes/{{expediente.response.body.$.data.expediente.idExpediente}}
+Authorization: {{auth}}
+
+### 9. Consulta transaccional, cliente jurídico (criterio 8): cif o rtn
+POST {{base}}/api/v1/clientes/juridico/documentos/consulta
+Authorization: {{auth}}
+Content-Type: application/json
+X-Operation-User: 51451
+
+{ "idTipoExpediente": 1, "noCaso": "536252673", "cif": "12345678" }
+
+### 10. Consulta transaccional, cliente natural (criterio 7): cif, o tipoIdentificacion + noIdentificacion
+POST {{base}}/api/v1/clientes/natural/documentos/consulta
+Authorization: {{auth}}
+Content-Type: application/json
+X-Operation-User: 51451
+
+{ "idTipoExpediente": 2, "noCaso": "900100", "tipoIdentificacion": "DNI", "noIdentificacion": "0801199000001" }
+
+### 11. Documentos del expediente por id
+GET {{base}}/api/v1/expedientes/{{expediente.response.body.$.data.expediente.idExpediente}}/documentos
+Authorization: {{auth}}
+
+### 12. Estado de una carga hecha por SFTP
+GET {{base}}/api/v1/cargas/000123
+Authorization: {{auth}}
+
+### 13. Descargar documento (criterio 9) - idDocumento = ID único de Laserfiche
+GET {{base}}/api/v1/documentos/5001/contenido
+Authorization: {{auth}}
+
+### 14. Cambio de estado en lote (criterio 10). permitirParcial = true aplica los válidos (código 3)
+POST {{base}}/api/v1/documentos/estado
+Authorization: {{auth}}
+Content-Type: application/json
+X-Operation-User: 51451
+Idempotency-Key: ejemplo-0001-estado
+
+{
+  "idExpediente": {{expediente.response.body.$.data.expediente.idExpediente}},
+  "ejecutivoAsignado": "Ejecutivo Uno",
+  "permitirParcial": false,
+  "documentos": [
+    {
+      "idDocumento": 5001,
+      "codigoEstado": "Rechazado",
+      "codigoTipoRechazo": "EstadosFinancierosDescuadrados",
+      "codigoEtapaRechazo": "AnalisisCredito",
+      "comentario": "Mes de febrero y marzo no cuadra"
+    }
+  ]
+}
+
+### Salud
+GET {{base}}/health/ready

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Contrato del XML de carga por SFTP ({Correlativo}_data.xml), versión 1.0.
+  Un solo formato para cliente natural y jurídico: los datos del cliente ya están en el expediente,
+  que se obtiene antes con POST /api/v1/expedientes.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <xs:simpleType name="Correlativo">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="50"/>
+      <xs:pattern value="[A-Za-z0-9._\-]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TextoObligatorio50">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="50"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TextoObligatorio200">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="200"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="NombreArchivo">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="3"/>
+      <xs:maxLength value="260"/>
+      <!-- Debe llevar extensión: con ella se valida el formato permitido del tipo de documento. -->
+      <xs:pattern value=".+\.[A-Za-z0-9]{1,10}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Vacio">
+    <xs:restriction base="xs:string">
+      <xs:length value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="HashOpcional">
+    <xs:union memberTypes="Vacio">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="[A-Fa-f0-9]{64}"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+
+  <xs:simpleType name="FechaOpcional">
+    <xs:union memberTypes="xs:date Vacio"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="EnteroPositivoOpcional">
+    <xs:union memberTypes="xs:positiveInteger Vacio"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="ComentarioOpcional">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="1000"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="expediente">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="idExpediente" type="xs:positiveInteger"/>
+        <xs:element name="informacionDocumento">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="correlativo" type="Correlativo"/>
+              <xs:element name="tipoDocumento" type="xs:positiveInteger"/>
+              <xs:element name="nombreDocumento" type="NombreArchivo"/>
+              <xs:element name="hashSha256" type="HashOpcional" minOccurs="0"/>
+              <xs:element name="fechaEmision" type="xs:date"/>
+              <xs:element name="fechaVencimiento" type="FechaOpcional" minOccurs="0"/>
+              <xs:element name="comentario" type="ComentarioOpcional" minOccurs="0"/>
+              <xs:element name="idDocumentoReemplaza" type="EnteroPositivoOpcional" minOccurs="0"/>
+              <xs:element name="usuarioCarga" type="TextoObligatorio50"/>
+              <xs:element name="nombreUsuarioCarga" type="TextoObligatorio200"/>
+              <xs:element name="fechaHoraCarga" type="xs:dateTime"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required" fixed="1.0"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

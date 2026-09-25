@@ -1,0 +1,2410 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "APILFBI",
+    "description": "API de gestión documental CRM ↔ Laserfiche 11.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5080/"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/token": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Criterio 2: token OAuth 2.0 (client_credentials) de 1 hora. Credenciales en el body\r\n(client_id, client_secret) o en el header Authorization: Basic.",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "grant_type": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "client_id": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "client_secret": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaToken"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaToken"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorToken"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorToken"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorToken"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorToken"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorToken"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorToken"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tipos-documento": {
+      "get": {
+        "tags": [
+          "Catalogos"
+        ],
+        "summary": "Criterio 4: todos los tipos de documento, con su estado y formatos permitidos.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfTipoDocumentoDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfTipoDocumentoDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfTipoDocumentoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalogos/{nombre}": {
+      "get": {
+        "tags": [
+          "Catalogos"
+        ],
+        "summary": "Listas para los campos del CRM (criterio 10): estados-documento, tipos-rechazo, etapas-rechazo,\r\ntipos-identificacion, segmentaciones, tipos-archivo, tipos-cliente.",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfItemCatalogoDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfItemCatalogoDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfItemCatalogoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clientes/natural/documentos/consulta": {
+      "post": {
+        "tags": [
+          "Consultas"
+        ],
+        "summary": "Criterio 7: cliente natural. Envíe cif, o tipoIdentificacion + noIdentificacion.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaNatural"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaNatural"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaNatural"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfConsultaNaturalRespuesta"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfConsultaNaturalRespuesta"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfConsultaNaturalRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clientes/juridico/documentos/consulta": {
+      "post": {
+        "tags": [
+          "Consultas"
+        ],
+        "summary": "Criterio 8: cliente jurídico. Envíe cif o rtn.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaJuridica"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaJuridica"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsultaJuridica"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfConsultaJuridicaRespuesta"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfConsultaJuridicaRespuesta"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfConsultaJuridicaRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expedientes/{idExpediente}/documentos": {
+      "get": {
+        "tags": [
+          "Documentos"
+        ],
+        "summary": "Documentos del expediente, igual que las consultas 7 y 8 pero directo por idExpediente.",
+        "parameters": [
+          {
+            "name": "idExpediente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfDocumentosExpedienteRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cargas/{correlativo}": {
+      "get": {
+        "tags": [
+          "Documentos"
+        ],
+        "summary": "Estado de una carga hecha por SFTP: Importado (con idDocumento) o Rechazado (con motivo).",
+        "parameters": [
+          {
+            "name": "correlativo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfCargaDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfCargaDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfCargaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documentos/{idDocumento}/contenido": {
+      "get": {
+        "tags": [
+          "Documentos"
+        ],
+        "summary": "Criterio 9: el documento en stream, para que el CRM lo muestre (Content-Disposition inline).\r\nidDocumento es el ID único de Laserfiche. Admite el header Range.",
+        "parameters": [
+          {
+            "name": "idDocumento",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileStreamResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileStreamResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileStreamResult"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        }
+      }
+    },
+    "/api/v1/documentos/estado": {
+      "post": {
+        "tags": [
+          "Estados"
+        ],
+        "summary": "Criterio 10: cambia el estado de un lote de documentos del expediente.\r\nPor defecto es todo o nada; con permitirParcial = true aplica los válidos (código 3).\r\nCada documento trae su propio código. El estado, el tipo de rechazo, la etapa y el ejecutivo\r\nasignado se reflejan en los campos de Laserfiche en segundos (el ejecutivo dispara el workflow).\r\nRequiere X-Operation-User; acepta Idempotency-Key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCambioEstado"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCambioEstado"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudCambioEstado"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfRespuestaCambioEstado"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfRespuestaCambioEstado"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfRespuestaCambioEstado"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expedientes": {
+      "post": {
+        "tags": [
+          "Expedientes"
+        ],
+        "summary": "Paso previo a la carga por SFTP: obtiene el expediente del conjunto de llaves o lo crea.\r\nDevuelve 201 si lo creó y 200 si ya existía. El idExpediente es el que va en el XML de carga.\r\nRequiere el header X-Operation-User; acepta Idempotency-Key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudExpediente"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudExpediente"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitudExpediente"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteRespuesta"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteRespuesta"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteRespuesta"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteRespuesta"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteRespuesta"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteRespuesta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expedientes/{idExpediente}": {
+      "get": {
+        "tags": [
+          "Expedientes"
+        ],
+        "summary": "Expediente con sus llaves vigentes.",
+        "parameters": [
+          {
+            "name": "idExpediente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfExpedienteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tipos-expediente": {
+      "get": {
+        "tags": [
+          "TiposExpediente"
+        ],
+        "summary": "Criterio 5: lista de tipos de expediente.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfTipoExpedienteDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfTipoExpedienteDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfTipoExpedienteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tipos-expediente/{idTipoExpediente}/tipos-documento": {
+      "get": {
+        "tags": [
+          "TiposExpediente"
+        ],
+        "summary": "Criterio 3: tipos de documento de un tipo de expediente. tipoCliente (N/J) es opcional.",
+        "parameters": [
+          {
+            "name": "idTipoExpediente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tipoCliente",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfTiposDocumentoDeExpedienteDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfTiposDocumentoDeExpedienteDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfTiposDocumentoDeExpedienteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tipos-expediente/tipos-documento": {
+      "get": {
+        "tags": [
+          "TiposExpediente"
+        ],
+        "summary": "Criterio 3 por nombre (o código) del tipo de expediente.",
+        "parameters": [
+          {
+            "name": "nombreTipoExpediente",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tipoCliente",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfTiposDocumentoDeExpedienteDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfTiposDocumentoDeExpedienteDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfTiposDocumentoDeExpedienteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tipos-expediente/{idTipoExpediente}/llaves": {
+      "get": {
+        "tags": [
+          "TiposExpediente"
+        ],
+        "summary": "Llaves que el CRM debe enviar en POST /expedientes para este tipo de expediente.",
+        "parameters": [
+          {
+            "name": "idTipoExpediente",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tipoCliente",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfLlavesPorTipoClienteDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfLlavesPorTipoClienteDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespuestaApiOfIReadOnlyListOfLlavesPorTipoClienteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CambioEstadoItem": {
+        "required": [
+          "idDocumento",
+          "codigoEstado",
+          "codigoTipoRechazo",
+          "codigoEtapaRechazo",
+          "comentario"
+        ],
+        "type": "object",
+        "properties": {
+          "idDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "codigoEstado": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codigoTipoRechazo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codigoEtapaRechazo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comentario": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CargaDto": {
+        "required": [
+          "correlativo",
+          "estadoCarga",
+          "idDocumento",
+          "idExpediente",
+          "idTipoDocumento",
+          "motivoRechazo",
+          "detalleRechazo",
+          "fechaHoraRecepcion"
+        ],
+        "type": "object",
+        "properties": {
+          "correlativo": {
+            "type": "string"
+          },
+          "estadoCarga": {
+            "type": "string"
+          },
+          "idDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "idTipoDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "motivoRechazo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detalleRechazo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fechaHoraRecepcion": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConsultaJuridica": {
+        "required": [
+          "idTipoExpediente",
+          "noCaso",
+          "cif",
+          "rtn"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noCaso": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rtn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConsultaJuridicaRespuesta": {
+        "required": [
+          "idExpediente",
+          "noCaso",
+          "cif",
+          "rtn",
+          "idTipoExpediente",
+          "documentos"
+        ],
+        "type": "object",
+        "properties": {
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "noCaso": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rtn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentoConsultaDto"
+            }
+          }
+        }
+      },
+      "ConsultaNatural": {
+        "required": [
+          "idTipoExpediente",
+          "noCaso",
+          "cif",
+          "tipoIdentificacion",
+          "noIdentificacion"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "noCaso": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tipoIdentificacion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "noIdentificacion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConsultaNaturalRespuesta": {
+        "required": [
+          "idExpediente",
+          "noCaso",
+          "cif",
+          "tipoIdentificacion",
+          "noIdentificacion",
+          "idTipoExpediente",
+          "documentos"
+        ],
+        "type": "object",
+        "properties": {
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "noCaso": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cif": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tipoIdentificacion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "noIdentificacion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentoConsultaDto"
+            }
+          }
+        }
+      },
+      "DocumentoCambioEstadoDto": {
+        "required": [
+          "idDocumento",
+          "estadoSolicitado",
+          "aplicado",
+          "codigo",
+          "mensaje"
+        ],
+        "type": "object",
+        "properties": {
+          "idDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "estadoSolicitado": {
+            "type": "string"
+          },
+          "aplicado": {
+            "type": "boolean"
+          },
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DocumentoConsultaDto": {
+        "required": [
+          "idDocumento",
+          "idTipoDocumento",
+          "tipoDocumento",
+          "obligatorio",
+          "estado",
+          "estadoNombre",
+          "segmentacion",
+          "fechaHoraRecepcion",
+          "fechaVencimiento",
+          "nombreEmpleadoAdjunto",
+          "comentario",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "idDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "idTipoDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tipoDocumento": {
+            "type": "string"
+          },
+          "obligatorio": {
+            "type": "boolean"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "estadoNombre": {
+            "type": "string"
+          },
+          "segmentacion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fechaHoraRecepcion": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fechaVencimiento": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "nombreEmpleadoAdjunto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comentario": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DocumentoDeTipoExpedienteDto": {
+        "required": [
+          "idTipoDocumento",
+          "nombreTipoDocumento",
+          "obligatorio",
+          "aplicaA"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nombreTipoDocumento": {
+            "type": "string"
+          },
+          "obligatorio": {
+            "type": "boolean"
+          },
+          "aplicaA": {
+            "type": "string"
+          }
+        }
+      },
+      "DocumentosExpedienteRespuesta": {
+        "required": [
+          "idExpediente",
+          "idTipoExpediente",
+          "tipoCliente",
+          "estadoExpediente",
+          "documentos"
+        ],
+        "type": "object",
+        "properties": {
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tipoCliente": {
+            "type": "string"
+          },
+          "estadoExpediente": {
+            "type": "string"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentoConsultaDto"
+            }
+          }
+        }
+      },
+      "EntityTagHeaderValue": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "$ref": "#/components/schemas/StringSegment"
+          },
+          "isWeak": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ErrorToken": {
+        "required": [
+          "error",
+          "error_description",
+          "codigo",
+          "mensaje",
+          "correlationId"
+        ],
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          },
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          }
+        }
+      },
+      "ExpedienteDto": {
+        "required": [
+          "idExpediente",
+          "idTipoExpediente",
+          "tipoExpediente",
+          "tipoCliente",
+          "estadoExpediente",
+          "fechaApertura",
+          "fechaCierre",
+          "llaves"
+        ],
+        "type": "object",
+        "properties": {
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tipoExpediente": {
+            "type": "string"
+          },
+          "tipoCliente": {
+            "type": "string"
+          },
+          "estadoExpediente": {
+            "type": "string"
+          },
+          "fechaApertura": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fechaCierre": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "llaves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LlaveExpedienteDto"
+            }
+          }
+        }
+      },
+      "ExpedienteRespuesta": {
+        "required": [
+          "expediente",
+          "esNuevo"
+        ],
+        "type": "object",
+        "properties": {
+          "expediente": {
+            "$ref": "#/components/schemas/ExpedienteDto"
+          },
+          "esNuevo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FileStreamResult": {
+        "type": "object",
+        "properties": {
+          "fileStream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "contentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fileDownloadName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastModified": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "entityTag": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EntityTagHeaderValue"
+              }
+            ]
+          },
+          "enableRangeProcessing": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ItemCatalogoDto": {
+        "required": [
+          "codigo",
+          "nombre"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          }
+        }
+      },
+      "LlaveConfiguradaDto": {
+        "required": [
+          "codigo",
+          "nombre",
+          "obligatoria",
+          "grupoIdentificacion",
+          "prioridadGrupo",
+          "tipoDato",
+          "longitudMaxima",
+          "expresionValidacion",
+          "valoresPermitidos"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "obligatoria": {
+            "type": "boolean"
+          },
+          "grupoIdentificacion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "prioridadGrupo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tipoDato": {
+            "type": "string"
+          },
+          "longitudMaxima": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expresionValidacion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valoresPermitidos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LlaveExpedienteDto": {
+        "required": [
+          "tipo",
+          "valor"
+        ],
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "string"
+          }
+        }
+      },
+      "LlavesPorTipoClienteDto": {
+        "required": [
+          "tipoCliente",
+          "llaves"
+        ],
+        "type": "object",
+        "properties": {
+          "tipoCliente": {
+            "type": "string"
+          },
+          "llaves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LlaveConfiguradaDto"
+            }
+          }
+        }
+      },
+      "LlaveValor": {
+        "required": [
+          "tipo",
+          "valor"
+        ],
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RespuestaApiOfCargaDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CargaDto"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfConsultaJuridicaRespuesta": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConsultaJuridicaRespuesta"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfConsultaNaturalRespuesta": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConsultaNaturalRespuesta"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfDocumentosExpedienteRespuesta": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DocumentosExpedienteRespuesta"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfExpedienteDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExpedienteDto"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfExpedienteRespuesta": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExpedienteRespuesta"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfIReadOnlyListOfItemCatalogoDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ItemCatalogoDto"
+            }
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfIReadOnlyListOfLlavesPorTipoClienteDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LlavesPorTipoClienteDto"
+            }
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfIReadOnlyListOfTipoDocumentoDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TipoDocumentoDto"
+            }
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfIReadOnlyListOfTipoExpedienteDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TipoExpedienteDto"
+            }
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfRespuestaCambioEstado": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RespuestaCambioEstado"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaApiOfTiposDocumentoDeExpedienteDto": {
+        "required": [
+          "codigo",
+          "mensaje",
+          "correlationId",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TiposDocumentoDeExpedienteDto"
+              }
+            ]
+          }
+        },
+        "description": "Sobre estándar de las respuestas exitosas."
+      },
+      "RespuestaCambioEstado": {
+        "required": [
+          "idExpediente",
+          "documentos"
+        ],
+        "type": "object",
+        "properties": {
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentoCambioEstadoDto"
+            }
+          }
+        }
+      },
+      "RespuestaToken": {
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "scope",
+          "codigo",
+          "mensaje"
+        ],
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "expires_in": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "codigo": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string"
+          }
+        }
+      },
+      "SolicitudCambioEstado": {
+        "required": [
+          "idExpediente",
+          "ejecutivoAsignado",
+          "permitirParcial",
+          "documentos"
+        ],
+        "type": "object",
+        "properties": {
+          "idExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "ejecutivoAsignado": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permitirParcial": {
+            "type": "boolean"
+          },
+          "documentos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CambioEstadoItem"
+            }
+          }
+        }
+      },
+      "SolicitudExpediente": {
+        "required": [
+          "idTipoExpediente",
+          "llaves"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "llaves": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LlaveValor"
+            }
+          }
+        }
+      },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
+      },
+      "StringSegment": {
+        "type": "object",
+        "properties": {
+          "buffer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "length": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasValue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TipoDocumentoDto": {
+        "required": [
+          "idTipoDocumento",
+          "codigo",
+          "nombreTipoDocumento",
+          "estado",
+          "tamanoMaximoMB",
+          "diasVigencia",
+          "reglaCarga",
+          "tiposArchivoPermitidos"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoDocumento": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "nombreTipoDocumento": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string"
+          },
+          "tamanoMaximoMB": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "diasVigencia": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "reglaCarga": {
+            "type": "string"
+          },
+          "tiposArchivoPermitidos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TipoExpedienteDto": {
+        "required": [
+          "idTipoExpediente",
+          "codigo",
+          "nombreTipoExpediente"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "nombreTipoExpediente": {
+            "type": "string"
+          }
+        }
+      },
+      "TiposDocumentoDeExpedienteDto": {
+        "required": [
+          "idTipoExpediente",
+          "nombreTipoExpediente",
+          "tiposDocumento"
+        ],
+        "type": "object",
+        "properties": {
+          "idTipoExpediente": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nombreTipoExpediente": {
+            "type": "string"
+          },
+          "tiposDocumento": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentoDeTipoExpedienteDto"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "description": "OAuth 2.0 client_credentials. El token dura 1 hora.",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "/api/v1/auth/token",
+            "scopes": {
+              "catalogos.leer": "catalogos.leer",
+              "expedientes.escribir": "expedientes.escribir",
+              "documentos.leer": "documentos.leer",
+              "documentos.estado": "documentos.estado",
+              "bitacora.leer": "bitacora.leer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": [
+        "catalogos.leer",
+        "expedientes.escribir",
+        "documentos.leer",
+        "documentos.estado",
+        "bitacora.leer"
+      ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Catalogos"
+    },
+    {
+      "name": "Consultas"
+    },
+    {
+      "name": "Documentos"
+    },
+    {
+      "name": "Estados"
+    },
+    {
+      "name": "Expedientes"
+    },
+    {
+      "name": "TiposExpediente"
+    }
+  ]
+}
